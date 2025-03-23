@@ -1,0 +1,161 @@
+.video-preview-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  .video-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center;
+    transition: transform 0.2s ease;
+    
+    .preview-video {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 1;
+    }
+    
+    .effects-canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+    
+    .video-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #1a1a1a;
+      color: #888;
+      font-size: 16px;
+      z-index: 1;
+    }
+  }
+  
+  .preview-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    
+    .left-controls,
+    .right-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      margin-right: 12px;
+      
+      .zoom-button {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        transition: all 0.2s;
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: #fff;
+        }
+        
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+      
+      .zoom-level {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 12px;
+        width: 40px;
+        text-align: center;
+      }
+    }
+    
+    .control-button {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      transition: all 0.2s;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+  
+  &:hover .preview-controls {
+    opacity: 1;
+  }
+  
+  &:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    
+    .video-wrapper {
+      width: 100vw;
+      height: 100vh;
+    }
+  }
+}
+
+// Animation for text bubbles
+@keyframes bubble-float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+} 
