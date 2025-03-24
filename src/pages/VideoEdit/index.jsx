@@ -29,81 +29,14 @@ import { bubblesByCategory } from './data/bubbles';
 import VideoPreview from './components/VideoPreview';
 import { elements, elementsByCategory } from './data/elements';
 
-// Initial tracks configuration
-const INITIAL_TRACKS = [
-  {
-    id: 'video-1',
-    type: TRACK_TYPES.VIDEO,
-    name: '数字人视频',
-    items: [],
-    locked: false,
-    visible: true
-  },
-  {
-    id: 'image-1',
-    type: TRACK_TYPES.IMAGE,
-    name: '图片轨道',
-    items: [],
-    locked: false,
-    visible: true
-  },
-  {
-    id: 'audio-1',
-    type: TRACK_TYPES.AUDIO,
-    name: '音频轨道',
-    items: [],
-    locked: false,
-    visible: true
-  },
-  {
-    id: 'text-1',
-    type: TRACK_TYPES.TEXT,
-    name: '文本轨道',
-    items: [],
-    locked: false,
-    visible: true
-  }
-];
-
-// 示例模板数据
-const SAMPLE_TEMPLATES = [
-  {
-    id: 'template-1',
-    title: '商务数字人介绍',
-    cover: 'https://picsum.photos/300/200?random=2',
-    duration: '00:30',
-    type: 'video',
-    src: 'http://kl-digital.oss-cn-shanghai.aliyuncs.com/synthesis/42/P13525239778T1741857143139RPYUV.mp4'
-  },
-  {
-    id: 'template-2',
-    title: '产品功能展示',
-    cover: 'https://picsum.photos/300/200?random=2',
-    duration: '00:45',
-    type: 'video',
-    src: 'http://kl-digital.oss-cn-shanghai.aliyuncs.com/synthesis/42/P13525239778T1741857143139RPYUV.mp4'
-  },
-  {
-    id: 'template-3',
-    title: '企业宣传视频',
-    cover: 'https://picsum.photos/300/200?random=2',
-    duration: '01:00',
-    type: 'video',
-    src: 'http://kl-digital.oss-cn-shanghai.aliyuncs.com/synthesis/42/P13525239778T1741857143139RPYUV.mp4'
-  }
-];
-
 const VideoEdit = () => {
   const [activeNav, setActiveNav] = useState('template');
   const [activeMyMaterialTab, setActiveMyMaterialTab] = useState('template');
-  const [selectedTemplate] = useState(null);
-  const [categoryExpanded, setCategoryExpanded] = useState(true);
   
   // Track-related state
-  const [tracks, setTracks] = useState(INITIAL_TRACKS);
+  const [tracks, setTracks] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [zoom, setZoom] = useState(1);
   const [selectedTrackItem, setSelectedTrackItem] = useState(null);
   const [timelineHeight, setTimelineHeight] = useState(120);
   const [isDraggingTimeline, setIsDraggingTimeline] = useState(false);
@@ -239,23 +172,125 @@ const VideoEdit = () => {
   const handleMaterialClick = (type, content) => {
     console.log('handleMaterialClick called with:', { type, content });
 
-    // 获取对应类型
-    const trackType = type === 'video' ? TRACK_TYPES.VIDEO :
-                    type === 'image' ? TRACK_TYPES.IMAGE :
-                    type === 'audio' ? TRACK_TYPES.BACKGROUND :
-                    type === 'text' ? TRACK_TYPES.TEXT :
-                    type === 'person' ? TRACK_TYPES.VIDEO : null;
-    
-    if (!trackType) {
-      message.warning('不支持的素材类型');
+    // 如果是视频类型，允许直接添加（因为这会创建新的区域片段）
+    if (type === 'video' || type === 'person') {
+      // 获取对应类型
+      const trackType = TRACK_TYPES.VIDEO;
+      
+      // 创建新的素材项
+      const newItem = {
+        id: `${type}-${Date.now()}`,
+        start: 0,
+        duration: 10,
+        content: typeof content === 'string' ? content : content.name || '未命名内容',
+      };
+      
+      // 根据类型设置src
+      if (typeof content === 'object' && content.preview_video) {
+        newItem.src = content.preview_video;
+        newItem.name = content.name;
+        newItem.duration = content.duration || 10;
+        newItem.templateId = content.id;
+        newItem.cover = content.cover;
+      } else {
+        newItem.src = 'http://kl-digital.oss-cn-shanghai.aliyuncs.com/synthesis/42/P13525239778T1741857143139RPYUV.mp4';
+        newItem.cover = 'https://picsum.photos/300/200?random=' + Date.now();
+      }
+
+      // 如果是人物视频
+      if (type === 'person' && typeof content === 'object') {
+        newItem.src = content.src || content.preview_video || 'https://res.chanjing.cc/chanjing/dp/output/2024-12-03/1733251200000-avatar1.png';
+        newItem.avatarId = content.id;
+        newItem.avatarName = content.name;
+        newItem.isHuman = true;
+        newItem.cover = content.cover || content.src;
+      }
+
+      // 获取当前视频轨道
+      const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
+
+      // 在现有轨道中添加新片段
+      if (videoTrack) {
+        console.log('在现有视频轨道中添加新视频');
+        
+        // 更新轨道数据 - 向轨道中添加新视频片段
+        const updatedTrack = {
+          ...videoTrack,
+          items: [newItem] // 替换现有视频
+        };
+        
+        const newTracks = tracks.map(track => 
+          track.id === videoTrack.id ? updatedTrack : track
+        );
+        
+        // 更新状态
+        setTracks(newTracks);
+        handleTrackChange(newTracks);
+        
+        // 选中新添加的视频
+        setSelectedVideoId(newItem.id);
+        setSelectedTrackItem({
+          trackId: videoTrack.id,
+          type: trackType,
+          itemId: newItem.id,
+          isTrack: false
+        });
+      } else {
+        // 如果没有视频轨道，创建新的
+        console.log('创建新的视频轨道并添加视频');
+        
+        const newVideoTrack = {
+          id: `video-track-${Date.now()}`,
+          type: trackType,
+          name: '视频轨道',
+          items: [newItem]
+        };
+        
+        const newTracks = [newVideoTrack, ...tracks.filter(track => track.type !== trackType)];
+        
+        // 更新状态
+        setTracks(newTracks);
+        handleTrackChange(newTracks);
+        
+        // 选中新添加的视频
+        setSelectedVideoId(newItem.id);
+        setSelectedTrackItem({
+          trackId: newVideoTrack.id,
+          type: trackType,
+          itemId: newItem.id,
+          isTrack: false
+        });
+      }
+      
+      // 重置播放状态
+      setCurrentTime(0);
+      setIsPlaying(false);
+      
+      message.success(`成功添加${type === 'video' ? '视频' : '数字人'}素材`);
       return;
     }
+
+    // 对于其他类型的素材，检查是否已选择区域
+    // if (!selectedVideoId) {
+    //   message.warning('请先选择一个区域片段');
+    //   return;
+    // }
 
     // 如果轨道是收起状态，展开它
     if (isTimelineCollapsed) {
       setIsTimelineCollapsed(false);
       // 调整时间轴高度
       setTimelineHeight(200);
+    }
+
+    // 获取对应类型
+    const trackType = type === 'image' ? TRACK_TYPES.IMAGE :
+                    type === 'audio' ? TRACK_TYPES.BACKGROUND :
+                    type === 'text' ? TRACK_TYPES.TEXT : null;
+    
+    if (!trackType) {
+      message.warning('不支持的素材类型');
+      return;
     }
 
     // 创建新的素材项
@@ -267,20 +302,7 @@ const VideoEdit = () => {
     };
     
     // 根据类型设置src
-    if (type === 'video') {
-      // 如果content是完整的模板对象
-      if (typeof content === 'object' && content.preview_video) {
-        newItem.src = content.preview_video;
-        newItem.name = content.name;
-        newItem.duration = content.duration || 10;
-        newItem.templateId = content.id;
-        newItem.cover = content.cover; // 保存封面图
-      } else {
-        // 默认视频
-        newItem.src = 'http://kl-digital.oss-cn-shanghai.aliyuncs.com/synthesis/42/P13525239778T1741857143139RPYUV.mp4';
-        newItem.cover = 'https://picsum.photos/300/200?random=' + Date.now(); // 添加默认封面图
-      }
-    } else if (type === 'text') {
+    if (type === 'text') {
       // 如果是气泡对象，保存气泡的信息
       if (typeof content === 'object' && content.type === 'bubble') {
         newItem.bubbleStyle = {
@@ -306,14 +328,6 @@ const VideoEdit = () => {
         newItem.src = content.url;
         newItem.duration = content.duration || 5;
       }
-    } else if (type === 'person') {
-      if (typeof content === 'object') {
-        newItem.src = content.src || content.preview_video || 'https://res.chanjing.cc/chanjing/dp/output/2024-12-03/1733251200000-avatar1.png';
-        newItem.avatarId = content.id;
-        newItem.avatarName = content.name;
-        newItem.isHuman = true;
-        newItem.cover = content.cover || content.src; // 保存封面图
-      }
     }
 
     // 创建新轨道
@@ -331,6 +345,7 @@ const VideoEdit = () => {
     setTracks(prevTracks => {
       // 保留所有现有轨道，新轨道添加到顶部
       const updatedTracks = [newTrack, ...prevTracks];
+      handleTrackChange(updatedTracks);
       return updatedTracks;
     });
     
@@ -393,6 +408,7 @@ const VideoEdit = () => {
   // 根据不同素材类型定义分类
   const materialCategories = {
     template: [
+      { key: 'all', label: '全部' },
       { key: 'knowledge', label: '知识口播' },
       { key: 'emotion', label: '情感口播' },
       { key: 'trending', label: '节目热点' },
@@ -406,6 +422,7 @@ const VideoEdit = () => {
       { key: 'digital', label: '数字人推广' }
     ],
     avatar: [
+      { key: 'all', label: '全部' },
       { key: 'business', label: '商务精英' },
       { key: 'intellectual', label: '知性' },
       { key: 'traditional', label: '国风' },
@@ -414,6 +431,7 @@ const VideoEdit = () => {
       { key: 'female', label: '女性形象' }
     ],
     audio: [
+      { key: 'all', label: '全部' },
       { key: 'popular', label: '热门音乐' },
       { key: 'sales', label: '带货音乐' },
       { key: 'emotion', label: '情感音乐' },
@@ -421,6 +439,7 @@ const VideoEdit = () => {
       { key: 'festive', label: '节日喜庆' }
     ],
     background: [
+      { key: 'all', label: '全部' },
       { key: '中式', label: '中式' },
       { key: '户外', label: '户外' },
       { key: '生活', label: '生活' },
@@ -428,12 +447,14 @@ const VideoEdit = () => {
       { key: '科技', label: '科技' }
     ],
     text: [
+      { key: 'all', label: '全部' },
       { key: 'title', label: '标题模板' },
       { key: 'subtitle', label: '字幕模板' },
       { key: 'caption', label: '说明文字' },
       { key: 'end', label: '片尾字幕' }
     ],
     element: [
+      { key: 'all', label: '全部' },
       { key: 'shape', label: '形状' },
       { key: 'plant', label: '植物' },
       { key: 'border', label: '边框' },
@@ -446,7 +467,7 @@ const VideoEdit = () => {
     ]
   };
 
-  const [activeCategory, setActiveCategory] = useState(materialCategories[activeNav]?.[0]?.key || '');
+  const [activeCategory, setActiveCategory] = useState('all');
 
   const navItems = [
     { key: 'template', label: '模板', icon: <AppstoreFilled /> },
@@ -488,6 +509,11 @@ const VideoEdit = () => {
     // 如果是从收起状态展开
     if (newCollapsed === false) {
       console.log('展开轨道区域, 当前选中视频ID:', selectedVideoId);
+
+      if (tracks.length === 0) {
+        message.warning('请先添加素材再展开轨道');
+        return;
+      }
       
       // 如果有选中的视频ID且在areaTrackMap中有对应的轨道数据
       if (selectedVideoId && areaTrackMap[selectedVideoId]) {
@@ -495,15 +521,6 @@ const VideoEdit = () => {
         // 加载该区域的轨道数据
         setTracks(JSON.parse(JSON.stringify(areaTrackMap[selectedVideoId])));
       } else {
-        // 如果没有选中的视频ID，但存在视频轨道数据，不需要显示警告
-        const hasVideoTrackItems = tracks.some(track => 
-          track.type === TRACK_TYPES.VIDEO && track.items.length > 0
-        );
-        
-        // 只有当没有选中的视频ID且没有视频轨道项目时，才显示警告
-        if (!selectedVideoId && !hasVideoTrackItems) {
-          message.warning('请先选择一个区域片段');
-        }
         
         // 检查是否已有视频轨道
         const hasVideoTrack = tracks.some(track => 
@@ -854,7 +871,7 @@ const VideoEdit = () => {
               // 获取基于当前分类的模板数据
               let displayTemplates = templates;
               
-              if (activeCategory && templatesByCategory[activeCategory]) {
+              if (activeCategory !== 'all' && templatesByCategory[activeCategory]) {
                 displayTemplates = templatesByCategory[activeCategory];
               }
               
@@ -901,7 +918,7 @@ const VideoEdit = () => {
               // 获取基于当前分类的人像数据
               let displayAvatars = avatars;
               
-              if (activeCategory && avatarsByCategory[activeCategory]) {
+              if (activeCategory !== 'all' && avatarsByCategory[activeCategory]) {
                 displayAvatars = avatarsByCategory[activeCategory];
               }
               
@@ -946,7 +963,7 @@ const VideoEdit = () => {
               // 获取基于当前分类的音乐数据
               let displayMusic = music;
               
-              if (activeCategory && musicByCategory[activeCategory]) {
+              if (activeCategory !== 'all' && musicByCategory[activeCategory]) {
                 displayMusic = musicByCategory[activeCategory];
               }
               
@@ -1000,7 +1017,7 @@ const VideoEdit = () => {
               // 获取基于当前分类的背景数据
               let displayBackgrounds = backgrounds;
               
-              if (activeCategory && backgroundsByCategory[activeCategory]) {
+              if (activeCategory !== 'all' && backgroundsByCategory[activeCategory]) {
                 displayBackgrounds = backgroundsByCategory[activeCategory];
               }
               
@@ -1038,49 +1055,83 @@ const VideoEdit = () => {
             {/* 文本素材 */}
             {activeNav === 'text' && (
               <>
-                {Object.entries(bubblesByCategory).map(([category, categoryBubbles]) => (
-                  <React.Fragment key={category}>
-                    <div className="category-title">{category}</div>
-                    <div className="bubbles-grid">
-                      {categoryBubbles.map((bubble) => (
-                        <div 
-                          key={bubble.id} 
-                          className="material-card bubble"
-                          onClick={() => handleMaterialClick('text', bubble)}
-                        >
+                {activeCategory === 'all' ? (
+                  // 显示所有分类的气泡
+                  Object.entries(bubblesByCategory).map(([category, categoryBubbles]) => (
+                    <React.Fragment key={category}>
+                      <div className="category-title">{category}</div>
+                      <div className="bubbles-grid">
+                        {categoryBubbles.map((bubble) => (
                           <div 
-                            className="bubble-content"
-                            style={{
-                              backgroundImage: `url(${bubble.preview_url || bubble.imageUrl})`,
-                              backgroundSize: 'contain',
-                              backgroundPosition: 'center',
-                              backgroundRepeat: 'no-repeat'
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </React.Fragment>
-                ))}
+                            key={bubble.id} 
+                            className="material-card bubble"
+                            onClick={() => handleMaterialClick('text', bubble)}
+                          >
+                            <div 
+                              className="bubble-content"
+                              style={{
+                                backgroundImage: `url(${bubble.preview_url || bubble.imageUrl})`,
+                                backgroundSize: 'contain',
+                                backgroundPosition: 'center',
+                                backgroundRepeat: 'no-repeat'
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </React.Fragment>
+                  ))
+                ) : (
+                  // 显示选中分类的气泡
+                  <div className="bubbles-grid">
+                    {bubblesByCategory[activeCategory]?.map((bubble) => (
+                      <div 
+                        key={bubble.id} 
+                        className="material-card bubble"
+                        onClick={() => handleMaterialClick('text', bubble)}
+                      >
+                        <div 
+                          className="bubble-content"
+                          style={{
+                            backgroundImage: `url(${bubble.preview_url || bubble.imageUrl})`,
+                            backgroundSize: 'contain',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat'
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
 
             {/* 元素素材 */}
-            {activeNav === 'element' && elements.map((element) => (
-              <div 
-                key={element.id} 
-                className="material-card element"
-                onClick={() => handleMaterialClick('image', element)}
-              >
-                <div className="material-card-content">
-                  <img 
-                    src={element.cover || element.url} 
-                    alt={element.name} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+            {activeNav === 'element' && (() => {
+              let displayElements = elements;
+              
+              if (activeCategory !== 'all' && elementsByCategory) {
+                displayElements = elements.filter(element => 
+                  element.categories.some(cat => cat.name === activeCategory)
+                );
+              }
+              
+              return displayElements.map((element) => (
+                <div 
+                  key={element.id} 
+                  className="material-card element"
+                  onClick={() => handleMaterialClick('image', element)}
+                >
+                  <div className="material-card-content">
+                    <img 
+                      src={element.cover || element.url} 
+                      alt={element.name} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
 
             {/* 我的素材 */}
             {activeNav === 'material' && (
@@ -1206,8 +1257,7 @@ const VideoEdit = () => {
                       <div className="preview-content">
                         <div className="empty-state">
                           <p>开始创建您的视频</p>
-                          <p>从左侧素材库中选择素材，添加到时间轴，创建精彩视频。</p>
-                          <p>可以添加视频、图片、文字、气泡文字、音效等元素。</p>
+                          <p>从左侧素材库中选择素材</p>
                         </div>
                       </div>
                     </div>

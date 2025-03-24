@@ -5,7 +5,8 @@ import {
   FullscreenOutlined,
   FullscreenExitOutlined,
   PlusOutlined,
-  MinusOutlined
+  MinusOutlined,
+  VideoCameraOutlined
 } from '@ant-design/icons';
 
 const VideoPreview = ({ 
@@ -247,6 +248,47 @@ const VideoPreview = ({
     };
   }, []);
 
+  // 渲染网格背景
+  const renderGridBackground = () => {
+    return (
+      <div className="grid-background">
+        <div className="grid-pattern"></div>
+        <div className="upload-hint">
+          <div className="hint-icon">
+            <VideoCameraOutlined />
+          </div>
+          <div className="hint-text">点击左侧素材添加视频</div>
+        </div>
+      </div>
+    );
+  };
+
+  // 视频播放状态同步
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleTimeUpdate = () => {
+      if (Math.abs(video.currentTime - currentTime) > 0.1) {
+        video.currentTime = currentTime;
+      }
+    };
+
+    const handleVideoEnd = () => {
+      onPause?.();
+      video.currentTime = 0;
+      onSeek?.(0);
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('ended', handleVideoEnd);
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('ended', handleVideoEnd);
+    };
+  }, [currentTime, onPause, onSeek]);
+
   return (
     <div 
       className="video-preview-container" 
@@ -263,9 +305,7 @@ const VideoPreview = ({
             playsInline
           />
         ) : (
-          <div className="video-placeholder">
-            <span>无视频源</span>
-          </div>
+          renderGridBackground()
         )}
         
         <canvas 

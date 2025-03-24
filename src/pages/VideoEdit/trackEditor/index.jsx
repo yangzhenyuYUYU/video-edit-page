@@ -16,23 +16,14 @@ const TrackEditor = ({
   onSelectedVideoIdChange,
   onDeleteItem
 }) => {
-  // 确保在不同的视频区域拥有各自独立的轨道数据
+  // 修改初始化轨道的逻辑
   const [tracks, setTracks] = useState(() => {
-    // 始终使用传入的 initialTracks，因为这应该是父组件为当前区域准备的特定轨道数据
+    // 只有当有初始轨道数据时才使用它
     if (initialTracks && initialTracks.length > 0) {
-      // 通过深拷贝确保数据的完全独立，避免引用相同对象
       return JSON.parse(JSON.stringify(initialTracks));
     }
-    
-    // 如果没有初始轨道数据，创建一个新的空轨道
-    return [
-      {
-        id: `track-${Date.now()}`, // 使用时间戳确保 ID 的唯一性
-        type: TRACK_TYPES.VIDEO,
-        name: '视频轨道',
-        items: []
-      }
-    ];
+    // 默认返回空数组，不再创建默认轨道
+    return [];
   });
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -58,6 +49,123 @@ const TrackEditor = ({
   const ghostRef = useRef(null);
   const videoRefs = useRef({});
   const cursorPositionRef = useRef({ time: 0, isDragging: false, pixelPosition: 0 }); // 新增：用于跟踪游标位置和拖拽状态
+
+  // 添加播放控制相关的状态和逻辑
+  const playbackRef = useRef(null);
+
+  // 处理播放/暂停
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      stopPlayback();
+    } else {
+      startPlayback();
+    }
+  };
+
+  // 开始播放
+  const startPlayback = () => {
+    if (playbackRef.current) return;
+
+    const duration = getDuration();
+    const startTime = currentTime >= duration ? 0 : currentTime;
+
+    setCurrentTime(startTime);
+    setIsPlaying(true);
+
+    playbackRef.current = setInterval(() => {
+      setCurrentTime(prevTime => {
+        const nextTime = prevTime + 0.1;
+        if (nextTime >= duration) {
+          stopPlayback();
+          return 0;
+        }
+        return nextTime;
+      });
+    }, 100);
+  };
+
+  // 停止播放
+  const stopPlayback = () => {
+    if (playbackRef.current) {
+      clearInterval(playbackRef.current);
+      playbackRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
+  // 监听播放状态变化
+  useEffect(() => {
+    if (isPlaying) {
+      startPlayback();
+    } else {
+      stopPlayback();
+    }
+
+    return () => {
+      stopPlayback();
+    };
+  }, [isPlaying]);
+
+  // 监听时间变化
+  useEffect(() => {
+    onCursorChange?.(currentTime);
+  }, [currentTime, onCursorChange]);
+
+  // 修改时间轴点击处理函数
+  const handleTimelineClick = (e) => {
+    // 阻止事件冒泡
+    e.stopPropagation();
+    
+    // 如果点击的是轨道项目或其他控制元素，不处理
+    if (e.target.closest('.track-item') || 
+        e.target.closest('.track-header') ||
+        e.target.closest('.resize-handle')) {
+      return;
+    }
+    
+    if (!timelineRef.current) return;
+    
+    const timelineRect = timelineRef.current.getBoundingClientRect();
+    const trackHeaderWidth = 36;
+    const scrollLeft = timelineRef.current.scrollLeft;
+    const rulerWidth = timelineRef.current.querySelector('.timeline-ruler').offsetWidth;
+    
+    // 计算有效时间轴区域的宽度
+    const effectiveWidth = rulerWidth - trackHeaderWidth;
+    
+    // 获取鼠标相对于时间轴左边界的位置（考虑滚动）
+    const mouseX = e.clientX - timelineRect.left + scrollLeft;
+    
+    // 计算鼠标相对于有效时间区域的位置
+    const relativeX = mouseX - trackHeaderWidth;
+    
+    // 如果点击在轨道头部区域，将位置设为0
+    if (relativeX < 0) {
+      stopPlayback();
+      setCurrentTime(0);
+      onCursorChange?.(0);
+      return;
+    }
+    
+    // 获取当前总时长
+    const duration = getDuration();
+    
+    // 计算每像素对应的时间（考虑缩放）
+    const timePerPixel = duration / (effectiveWidth * zoom);
+    
+    // 计算时间点
+    const time = relativeX * timePerPixel;
+    
+    // 确保时间在有效范围内
+    const clampedTime = Math.max(0, Math.min(Math.round(time * 10) / 10, duration));
+    
+    // 停止当前播放
+    stopPlayback();
+    
+    // 更新时间
+    setCurrentTime(clampedTime);
+    onCursorChange?.(clampedTime);
+  };
 
   // 修改游标拖拽开始处理函数
   const handleCursorMouseDown = (e) => {
@@ -186,90 +294,6 @@ const TrackEditor = ({
     // 更新状态
     setCurrentTime(finalTime);
     onCursorChange?.(finalTime);
-  };
-
-  // 处理时间轴点击
-  const handleTimelineClick = (e) => {
-    // 阻止事件冒泡
-    e.stopPropagation();
-    
-    // 如果点击的是轨道项目或其他控制元素，不处理
-    if (e.target.closest('.track-item') || 
-        e.target.closest('.track-header') ||
-        e.target.closest('.resize-handle')) {
-      return;
-    }
-    
-    if (!timelineRef.current) return;
-    
-    const timelineRect = timelineRef.current.getBoundingClientRect();
-    const trackHeaderWidth = 36; // 轨道头部宽度
-    const scrollLeft = timelineRef.current.scrollLeft;
-    const rulerWidth = timelineRef.current.querySelector('.timeline-ruler').offsetWidth;
-    
-    // 计算有效时间轴区域（不包括轨道头部）的宽度
-    const effectiveWidth = rulerWidth - trackHeaderWidth;
-    
-    // 获取鼠标相对于时间轴左边界的位置（考虑滚动）
-    const mouseX = e.clientX - timelineRect.left + scrollLeft;
-    
-    // 计算鼠标相对于有效时间区域的位置
-    const relativeX = mouseX - trackHeaderWidth;
-    
-    // 如果点击在轨道头部区域，将位置设为0
-    if (relativeX < 0) {
-      setCurrentTime(0);
-      onCursorChange?.(0);
-      return;
-    }
-    
-    // 获取当前总时长
-    const duration = getDuration();
-    
-    // 计算每像素对应的时间（考虑缩放）
-    const timePerPixel = duration / (effectiveWidth * zoom);
-    
-    // 计算时间点
-    const time = relativeX * timePerPixel;
-    
-    // 确保时间在有效范围内（0到视频时长）
-    const clampedTime = Math.max(0, Math.min(Math.round(time * 10) / 10, duration));
-    
-    // 反向计算准确的像素位置
-    const pixelPosition = (clampedTime / duration) * effectiveWidth * zoom + trackHeaderWidth;
-    
-    // 获取游标元素
-    const cursorIndicator = timelineRef.current.querySelector('.cursor-indicator');
-    const cursorLine = timelineRef.current.querySelector('.cursor-line');
-    
-    if (cursorIndicator && cursorLine) {
-      requestAnimationFrame(() => {
-        // 立即显示游标
-        cursorIndicator.style.display = 'block';
-        cursorLine.style.display = 'block';
-        
-        // 设置游标位置（考虑滚动位置）
-        const adjustedPosition = pixelPosition - scrollLeft;
-        cursorIndicator.style.left = `${adjustedPosition}px`;
-        cursorLine.style.left = `${adjustedPosition}px`;
-        cursorLine.style.height = `${timelineRef.current.scrollHeight}px`;
-        
-        // 确保transform样式正确
-        cursorIndicator.style.transform = 'translateX(-50%)';
-        cursorLine.style.transform = 'translateX(-50%)';
-      });
-    }
-    
-    // 更新保存的游标位置
-    cursorPositionRef.current = {
-      time: clampedTime,
-      isDragging: false,
-      pixelPosition: pixelPosition
-    };
-    
-    // 更新状态
-    setCurrentTime(clampedTime);
-    onCursorChange?.(clampedTime);
   };
 
   // 处理缩放
@@ -982,9 +1006,13 @@ const TrackEditor = ({
 
   // 获取总时长
   const getDuration = () => {
+    // 如果没有轨道，返回默认时长
+    if (tracks.length === 0) {
+      return 10; // 默认10秒
+    }
+
     // 计算所有轨道项目中的最大结束时间
     let maxEndTime = 0;
-    
     tracks.forEach(track => {
       track.items.forEach(item => {
         const itemEndTime = item.start + item.duration;
@@ -1549,66 +1577,47 @@ const TrackEditor = ({
 
   // 修改轨道展开/收起的函数
   const toggleCollapse = () => {
-    // 如果当前是收起状态但没有选择任何视频
-    if (isCollapsed && !selectedVideoId) {
-      console.log('请先选择一个区域片段');
-      // 通知父组件显示提示消息
-      onItemSelect?.({action: 'showTip', message: '请先选择一个区域片段'});
-      return;
-    }
-    
     // 通知父组件状态变化
     onCollapsedChange?.(!isCollapsed);
   };
 
   // 修改渲染收起状态下的视频轨道
   const renderCollapsedVideoTracks = () => {
-    // 获取所有视频项目
-    const allVideoItems = getAllVideoItems();
-    console.log('收起状态下渲染视频项目:', allVideoItems.length);
+    // 获取所有视频项目中的第一个
+    const videoItem = tracks.find(t => t.type === TRACK_TYPES.VIDEO)?.items[0];
     
+    if (!videoItem) {
+      return (
+        <div className="collapsed-video-tracks">
+          <div className="empty-track-message">
+            暂无视频片段
+          </div>
+        </div>
+      );
+    }
+
+    // 计算需要重复的次数，这里我们设置一个合理的数量，比如5次
+    const repeatCount = 5;
+
     return (
       <div className="collapsed-video-tracks">
-        {/* 渲染所有视频项目 */}
-        {allVideoItems.map((item) => (
-          <div 
-            key={item.id}
-            className={`collapsed-video-item ${item.id === selectedVideoId ? 'selected' : ''}`}
-            onClick={() => handleVideoSelect(item.id)}
-          >
-            <div className="video-frames-container">
-              {videoFrames[item.id]?.frames.map((frame, index) => (
-                <div
-                  key={index}
-                  className="video-frame"
-                  style={{ backgroundImage: `url(${frame})` }}
-                />
-              ))}
-            </div>
-            <div className="video-item-duration">{item.duration}s</div>
-          </div>
-        ))}
-        
-        {/* 添加按钮 */}
-        <button 
-          className="add-video-button" 
-          onClick={(e) => {
-            console.log('加号按钮被点击');
-            e.preventDefault();
-            e.stopPropagation();
-            handleAddVideo(e);
-            return false; // 阻止事件传播
-          }}
+        <div 
+          key={videoItem.id}
+          className={`collapsed-video-item ${videoItem.id === selectedVideoId ? 'selected' : ''}`}
+          onClick={() => handleVideoSelect(videoItem.id)}
+          style={{ width: '100%' }}
         >
-          <PlusOutlined />
-        </button>
-        
-        {/* 空状态提示 */}
-        {allVideoItems.length === 0 && (
-          <div className="empty-track-message">
-            没有视频片段，点击"+"按钮添加
+          <div className="video-frames-container">
+            {Array(repeatCount).fill(null).map((_, index) => (
+              <div
+                key={index}
+                className="video-cover"
+                style={{ backgroundImage: `url(${videoItem.cover || 'https://picsum.photos/300/200'})` }}
+              />
+            ))}
           </div>
-        )}
+          <div className="video-item-duration">{videoItem.duration}s</div>
+        </div>
       </div>
     );
   };
@@ -1837,13 +1846,30 @@ const TrackEditor = ({
     });
   }, [tracks]);
 
+  // 添加空状态渲染函数
+  const renderEmptyState = () => {
+    return (
+      <div className="empty-timeline-state">
+        <div className="empty-state-content">
+          <div className="empty-state-icon">
+            <VideoCameraOutlined />
+          </div>
+          <div className="empty-state-text">
+            从左侧素材库中选择内容添加到轨道
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`track-editor ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="timeline-controls">
         <div className="left-controls">
           <button
             className="play-button"
-            onClick={() => setIsPlaying(!isPlaying)}
+            onClick={handlePlayPause}
+            disabled={tracks.length === 0} // 禁用播放按钮当没有轨道时
             title={isPlaying ? "暂停" : "播放"}
           >
             {isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
@@ -1951,7 +1977,11 @@ const TrackEditor = ({
             style={{ width: calculateTimelineWidth() }}
             onClick={handleTimelineClick}
           >
-            {tracks.map(renderTrack)}
+            {tracks.length > 0 ? (
+              tracks.map(renderTrack)
+            ) : (
+              renderEmptyState()
+            )}
           </div>
         </div>
       )}
