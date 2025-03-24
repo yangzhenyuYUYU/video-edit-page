@@ -1,3 +1,63 @@
+.video-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+
+  .video-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  .canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  // Loading state
+  .loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 16px;
+    z-index: 20;
+  }
+
+  // Error state
+  .error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ff4d4f;
+    font-size: 16px;
+    z-index: 20;
+  }
+}
+
 .video-preview-container {
   position: relative;
   width: 100%;
@@ -7,7 +67,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 
   .video-wrapper {
     flex: 1;
@@ -15,11 +74,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transform-origin: center;
-    transition: transform 0.2s ease;
+    overflow: hidden;
     
     .preview-video {
       position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: contain;
@@ -28,60 +88,109 @@
     
     .effects-canvas {
       position: absolute;
-      width: 100%;
-      height: 100%;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
       z-index: 2;
+      pointer-events: all;
+      cursor: default;
+      
+      &.dragging {
+        cursor: move;
+      }
+      
+      &.resizing {
+        &.nw-resize { cursor: nw-resize; }
+        &.n-resize { cursor: n-resize; }
+        &.ne-resize { cursor: ne-resize; }
+        &.e-resize { cursor: e-resize; }
+        &.se-resize { cursor: se-resize; }
+        &.s-resize { cursor: s-resize; }
+        &.sw-resize { cursor: sw-resize; }
+        &.w-resize { cursor: w-resize; }
+      }
+      
+      &.rotating {
+        cursor: crosshair;
+      }
+    }
+
+    .selection-frame {
+      position: absolute;
+      border: 2px dashed #1890ff;
       pointer-events: none;
-    }
-    
-    .video-placeholder {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #1a1a1a;
-      color: #888;
-      font-size: 16px;
-      z-index: 1;
-    }
-
-    .grid-background {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      background-color: #1a1a1a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      .grid-pattern {
+      transform-origin: center center;
+      
+      .control-point {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-        background-size: 20px 20px;
-        opacity: 0.3;
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border: 2px solid #1890ff;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: all;
+        cursor: pointer;
+        
+        &.rotate {
+          background: #1890ff;
+          border-color: #fff;
+          cursor: crosshair;
+          top: -30px;
+          left: 50%;
+        }
+        
+        &.nw { top: 0; left: 0; cursor: nw-resize; }
+        &.n { top: 0; left: 50%; cursor: n-resize; }
+        &.ne { top: 0; right: 0; cursor: ne-resize; }
+        &.e { top: 50%; right: 0; cursor: e-resize; }
+        &.se { bottom: 0; right: 0; cursor: se-resize; }
+        &.s { bottom: 0; left: 50%; cursor: s-resize; }
+        &.sw { bottom: 0; left: 0; cursor: sw-resize; }
+        &.w { top: 50%; left: 0; cursor: w-resize; }
+      }
+    }
+  }
+  
+  .grid-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background-color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .grid-pattern {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.3;
+    }
+
+    .upload-hint {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.65);
+
+      .hint-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.8;
       }
 
-      .upload-hint {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-        color: rgba(255, 255, 255, 0.65);
-
-        .hint-icon {
-          font-size: 48px;
-          margin-bottom: 16px;
-          opacity: 0.8;
-        }
-
-        .hint-text {
-          font-size: 16px;
-        }
+      .hint-text {
+        font-size: 16px;
       }
     }
   }

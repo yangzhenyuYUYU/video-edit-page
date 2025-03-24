@@ -296,8 +296,7 @@
   .timeline {
     flex: 1;
     position: relative;
-    overflow-y: hidden;
-    overflow-x: scroll;
+    overflow: hidden;
     background: #fafafa;
     display: flex;
     flex-direction: column;
@@ -319,28 +318,26 @@
       // 游标指示器样式
       .cursor-indicator {
         position: absolute;
-        top: 0 !important;
-        width: 10px !important;
-        height: 10px !important;
-        background-color: rgba(24, 144, 255, 0.85) !important;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        background-color: rgba(24, 144, 255, 0.85);
         border-radius: 50%;
-        transform: translate(-50%, 0) !important;
+        transform: translate(-50%, 0);
         cursor: pointer;
         z-index: 10;
-        display: block !important;
-        pointer-events: all !important;
-        margin-top: 7px !important;
+        margin-top: 7px;
         border: 1.5px solid #fff;
         box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
         
         &:hover {
-          background-color: #1890ff !important;
-          transform: translate(-50%, 0) scale(1.1) !important;
+          background-color: #1890ff;
+          transform: translate(-50%, 0) scale(1.1);
         }
         
         &.dragging {
-          background-color: #1890ff !important;
-          transform: translate(-50%, 0) scale(1.1) !important;
+          background-color: #1890ff;
+          transform: translate(-50%, 0) scale(1.1);
         }
       }
 
@@ -394,6 +391,7 @@
       padding-left: 36px;
       height: auto;
       overflow-y: auto;
+      overflow-x: auto;
       // 空状态样式
       .empty-timeline-state {
         position: absolute;
@@ -456,7 +454,7 @@
     // 游标线样式
     .cursor-line {
       position: absolute;
-      top: 24px; // 从时间刻度尺下方开始
+      top: 24px;
       bottom: 0;
       width: 1px;
       background-color: rgba(24, 144, 255, 0.45);

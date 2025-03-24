@@ -1224,22 +1224,6 @@ const VideoEdit = () => {
               <div className="preview-header">
                 <h3>视频预览</h3>
                 <div className="header-actions">
-                  <button 
-                    className={`action-button ${!canUndo ? 'disabled' : ''}`}
-                    onClick={() => {/* 实现撤销功能 */}}
-                    disabled={!canUndo}
-                  >
-                    <UndoOutlined />
-                    撤销
-                  </button>
-                  <button 
-                    className={`action-button ${!canRedo ? 'disabled' : ''}`}
-                    onClick={() => {/* 实现重做功能 */}}
-                    disabled={!canRedo}
-                  >
-                    <RedoOutlined />
-                    重做
-                  </button>
                   <Button 
                     type="primary" 
                     icon={<ExportOutlined />} 
@@ -1251,34 +1235,37 @@ const VideoEdit = () => {
                 </div>
               </div>
               <div className="preview-container">
-                {tracks.length === 0 ? (
-                  <div className="preview-wrapper">
-                    <div className="preview-aspect-ratio">
-                      <div className="preview-content">
+                <div className="preview-wrapper">
+                  <div className="preview-aspect-ratio">
+                    <div className="preview-content">
+                      {tracks.length === 0 ? (
                         <div className="empty-state">
                           <p>开始创建您的视频</p>
                           <p>从左侧素材库中选择素材</p>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="preview-wrapper">
-                    <div className="preview-aspect-ratio">
-                      <div className="preview-content">
+                      ) : (
                         <VideoPreview 
                           videoSrc={getActiveVideoSrc()}
                           tracks={tracks}
                           currentTime={currentTime}
                           isPlaying={isPlaying}
-                          onPlay={() => setIsPlaying(true)}
-                          onPause={() => setIsPlaying(false)}
-                          onSeek={handleSeek}
+                          onPlay={() => {
+                            console.log('Play requested');
+                            setIsPlaying(true);
+                          }}
+                          onPause={() => {
+                            console.log('Pause requested');
+                            setIsPlaying(false);
+                          }}
+                          onSeek={(time) => {
+                            console.log('Seek to:', time);
+                            handleSeek(time);
+                          }}
                         />
-                      </div>
+                      )}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 

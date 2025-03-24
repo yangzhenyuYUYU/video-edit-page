@@ -49,4 +49,44 @@ export const DEFAULT_DURATIONS = {
   EFFECT: 3,       // 特效默认3秒
   FILTER: 3,       // 滤镜默认3秒
   TRANSITION: 1    // 转场默认1秒
+};
+
+// 轨道项的默认属性
+export const DEFAULT_TRACK_ITEM_PROPS = {
+  // 基础属性
+  id: '',
+  start: 0,
+  duration: 2,
+  
+  // 位置和尺寸
+  x: 50, // 默认居中，百分比
+  y: 50, // 默认居中，百分比
+  width: 30, // 宽度百分比
+  height: 'auto', // 高度自适应
+  rotation: 0, // 旋转角度
+  scale: 1, // 缩放比例
+  
+  // 样式
+  opacity: 1,
+  zIndex: 0,
+  
+  // 文本特有属性
+  textStyle: {
+    fontSize: 24,
+    fontFamily: 'Arial',
+    color: '#ffffff',
+    textAlign: 'center',
+    fontWeight: 'normal',
+    letterSpacing: 0,
+    lineHeight: 1.5,
+    textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+  },
+  
+  // 气泡特有属性
+  bubbleStyle: {
+    imageUrl: '',
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 8
+  }
 }; 
