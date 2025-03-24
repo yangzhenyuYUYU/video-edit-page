@@ -296,7 +296,8 @@
   .timeline {
     flex: 1;
     position: relative;
-    overflow: auto;
+    overflow-y: hidden;
+    overflow-x: scroll;
     background: #fafafa;
     display: flex;
     flex-direction: column;
@@ -392,8 +393,7 @@
       flex-direction: column;
       padding-left: 36px;
       height: auto;
-      overflow-y: hidden;
-
+      overflow-y: auto;
       // 空状态样式
       .empty-timeline-state {
         position: absolute;
