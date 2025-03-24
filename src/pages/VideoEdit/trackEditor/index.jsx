@@ -1279,17 +1279,12 @@ const TrackEditor = ({
           return (
             <div className="media-container">
               <div 
-                className="media-cover"
-                style={{ 
+                className="video-frames-container"
+                style={{
                   backgroundImage: `url(${itemWithTrackId.cover || 'https://picsum.photos/300/200'})`,
-                  backgroundSize: 'contain',
+                  backgroundSize: 'auto 100%', // 高度100%，宽度自适应
+                  backgroundRepeat: 'repeat-x', // 横向重复
                   backgroundPosition: 'center',
-                  width: '100%',
-                  height: '100%',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  borderRadius: '4px'
                 }}
               />
             </div>
@@ -1583,7 +1578,6 @@ const TrackEditor = ({
 
   // 修改渲染收起状态下的视频轨道
   const renderCollapsedVideoTracks = () => {
-    // 获取所有视频项目中的第一个
     const videoItem = tracks.find(t => t.type === TRACK_TYPES.VIDEO)?.items[0];
     
     if (!videoItem) {
@@ -1596,9 +1590,6 @@ const TrackEditor = ({
       );
     }
 
-    // 计算需要重复的次数，这里我们设置一个合理的数量，比如5次
-    const repeatCount = 5;
-
     return (
       <div className="collapsed-video-tracks">
         <div 
@@ -1607,15 +1598,15 @@ const TrackEditor = ({
           onClick={() => handleVideoSelect(videoItem.id)}
           style={{ width: '100%' }}
         >
-          <div className="video-frames-container">
-            {Array(repeatCount).fill(null).map((_, index) => (
-              <div
-                key={index}
-                className="video-cover"
-                style={{ backgroundImage: `url(${videoItem.cover || 'https://picsum.photos/300/200'})` }}
-              />
-            ))}
-          </div>
+          <div 
+            className="video-frames-container"
+            style={{
+              backgroundImage: `url(${videoItem.cover || 'https://picsum.photos/300/200'})`,
+              backgroundSize: 'auto 100%', // 高度100%，宽度自适应
+              backgroundRepeat: 'repeat-x', // 横向重复
+              backgroundPosition: 'center',
+            }}
+          />
           <div className="video-item-duration">{videoItem.duration}s</div>
         </div>
       </div>
