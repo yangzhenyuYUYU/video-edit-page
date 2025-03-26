@@ -75,6 +75,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    transform-origin: center;
     
     .preview-video {
       position: absolute;
@@ -86,69 +87,92 @@
       z-index: 1;
     }
     
-    .effects-canvas {
+    .elements-layer {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100% !important;
-      height: 100% !important;
-      z-index: 2;
-      pointer-events: all;
-      cursor: default;
-      
-      &.dragging {
-        cursor: move;
-      }
-      
-      &.resizing {
-        &.nw-resize { cursor: nw-resize; }
-        &.n-resize { cursor: n-resize; }
-        &.ne-resize { cursor: ne-resize; }
-        &.e-resize { cursor: e-resize; }
-        &.se-resize { cursor: se-resize; }
-        &.s-resize { cursor: s-resize; }
-        &.sw-resize { cursor: sw-resize; }
-        &.w-resize { cursor: w-resize; }
-      }
-      
-      &.rotating {
-        cursor: crosshair;
-      }
-    }
-
-    .selection-frame {
-      position: absolute;
-      border: 2px dashed #1890ff;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
-      transform-origin: center center;
+      z-index: 2;
       
-      .control-point {
+      .text-element {
         position: absolute;
-        width: 12px;
-        height: 12px;
-        background: #fff;
-        border: 2px solid #1890ff;
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
         pointer-events: all;
-        cursor: pointer;
+        cursor: move;
+        user-select: none;
+        transform-origin: center;
         
-        &.rotate {
-          background: #1890ff;
-          border-color: #fff;
-          cursor: crosshair;
-          top: -30px;
-          left: 50%;
+        .text-content {
+          padding: 8px;
+          white-space: nowrap;
+          color: #fff;
+          font-size: 24px;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
         
-        &.nw { top: 0; left: 0; cursor: nw-resize; }
-        &.n { top: 0; left: 50%; cursor: n-resize; }
-        &.ne { top: 0; right: 0; cursor: ne-resize; }
-        &.e { top: 50%; right: 0; cursor: e-resize; }
-        &.se { bottom: 0; right: 0; cursor: se-resize; }
-        &.s { bottom: 0; left: 50%; cursor: s-resize; }
-        &.sw { bottom: 0; left: 0; cursor: sw-resize; }
-        &.w { top: 50%; left: 0; cursor: w-resize; }
+        &.selected {
+          &::after {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border: 2px dashed #1890ff;
+            pointer-events: none;
+          }
+          
+          .resize-rotate-handles {
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            pointer-events: none;
+            
+            .handle {
+              position: absolute;
+              width: 12px;
+              height: 12px;
+              background: #fff;
+              border: 2px solid #1890ff;
+              border-radius: 50%;
+              pointer-events: all;
+              transform: translate(-50%, -50%);
+              
+              &.nw { top: 0; left: 0; cursor: nw-resize; }
+              &.ne { top: 0; right: 100%; cursor: ne-resize; }
+              &.se { bottom: 0; right: 100%; cursor: se-resize; }
+              &.sw { bottom: 0; left: 0; cursor: sw-resize; }
+            }
+            
+            .rotate-handle {
+              position: absolute;
+              top: -30px;
+              left: 50%;
+              width: 12px;
+              height: 12px;
+              background: #1890ff;
+              border: 2px solid #fff;
+              border-radius: 50%;
+              transform: translateX(-50%);
+              cursor: crosshair;
+              pointer-events: all;
+              
+              &::before {
+                content: '';
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                width: 2px;
+                height: 20px;
+                background: #1890ff;
+                transform: translateX(-50%);
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -210,11 +234,39 @@
     opacity: 0;
     transition: opacity 0.3s ease;
     
+    &:hover {
+      opacity: 1;
+    }
+    
     .left-controls,
     .right-controls {
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+    
+    .control-button {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      transition: all 0.2s;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      
+      &:active {
+        transform: scale(0.95);
+      }
     }
     
     .zoom-controls {
@@ -253,34 +305,6 @@
         text-align: center;
       }
     }
-    
-    .control-button {
-      background: transparent;
-      border: none;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 22px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      transition: all 0.2s;
-      
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #fff;
-      }
-      
-      &:active {
-        transform: scale(0.95);
-      }
-    }
-  }
-  
-  &:hover .preview-controls {
-    opacity: 1;
   }
   
   &:fullscreen {

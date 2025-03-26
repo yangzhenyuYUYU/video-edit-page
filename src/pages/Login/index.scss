@@ -1,0 +1,524 @@
+// 登录页特定的变量
+.page-login {
+  --login-primary: #2B81FF;
+  --login-input-height: 44px;
+  --login-border-radius: 4px;
+  
+  min-height: 100vh;
+  display: flex;
+  background: linear-gradient(135deg, #F6F9FE 0%, #FFFFFF 100%);
+
+  // 左侧区域
+  .login-left {
+    flex: 1;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(43, 129, 255, 0.3), rgba(0, 0, 0, 0.6));
+    }
+    
+    &-content {
+      position: relative;
+      z-index: 1;
+      padding: 0 60px;
+      color: white;
+      max-width: 600px;
+      
+      h1 {
+        font-size: 64px;
+        font-weight: 700;
+        margin-bottom: 24px;
+        color: white;
+        line-height: 1.2;
+      }
+      
+      p {
+        font-size: 18px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+        max-width: 520px;
+      }
+    }
+  }
+
+  // 右侧登录区域
+  .login-right {
+    width: 500px;
+    background: white;
+    display: flex;
+    align-items: center;
+    padding: 40px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    
+    .login-box {
+      width: 100%;
+      max-width: 360px;
+      margin: 0 auto;
+    }
+  }
+
+  // Logo区域
+  .login-header {
+    margin-bottom: 40px;
+    text-align: center;
+    
+    .login-logo-wrapper {  // 改为更具体的类名
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      
+      .login-logo-img {  // 改为更具体的类名
+        height: 40px;
+        margin-bottom: 16px;
+      }
+      
+      .login-brand-text {  // 改为更具体的类名
+        font-size: 24px;
+        font-weight: 600;
+        color: #1E293B;
+      }
+    }
+  }
+
+  // 登录表单
+  .login-form {
+    .form-group {
+      margin-bottom: 16px;
+      position: relative;
+    }
+    
+    input {
+      width: 100%;
+      height: var(--login-input-height);
+      padding: 0 12px;
+      border: 1px solid #e8e8e8;
+      border-radius: var(--login-border-radius);
+      font-size: 14px;
+      background: white;
+      
+      &:focus {
+        outline: none;
+        border-color: var(--login-primary);
+      }
+    }
+  }
+
+  // 手机号输入组
+  .phone-input-group {
+    display: flex;
+    border: 1px solid #e8e8e8;
+    border-radius: var(--login-border-radius);
+    background: white;
+    
+    &:focus-within {
+      border-color: var(--login-primary);
+    }
+    
+    .country-select {
+      width: 100px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      border-right: 1px solid #e8e8e8;
+      background: #f7f7f7;
+      
+      .select-content {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        
+        .country-code {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          
+          .prefix {
+            font-size: 13px;
+            color: #666;
+          }
+          
+          .number {
+            font-size: 15px;
+            color: var(--login-primary);
+            font-weight: 500;
+          }
+        }
+      }
+      
+      .arrow-down {
+        color: #999;
+        font-size: 12px;
+        transition: transform 0.2s ease;
+        display: inline-block;
+        
+        &.open {
+          transform: rotate(180deg);
+        }
+      }
+    }
+    
+    input {
+      flex: 1;
+      border: none;
+      
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+
+  // 国家选择下拉框
+  .country-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 240px;
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: var(--login-border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 280px;
+    overflow-y: auto;
+    transform-origin: top center;
+    animation: dropDown 0.2s ease-out;
+    
+    &.closing {
+      animation: dropUp 0.2s ease-out;
+    }
+    
+    .country-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      cursor: pointer;
+      
+      &:hover {
+        background: #f5f7fa;
+      }
+      
+      .country-code-prefix {
+        font-size: 13px;
+        color: #666;
+        width: 28px;
+      }
+      
+      .country-name {
+        flex: 1;
+        font-size: 14px;
+        color: #333;
+        margin-left: 8px;
+      }
+      
+      .country-code {
+        color: var(--login-primary);
+        font-size: 15px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // 验证码输入组
+  .verify-code {
+    display: flex;
+    position: relative;
+    border: 1px solid #e8e8e8;
+    border-radius: var(--login-border-radius);
+    background: white;
+    
+    &:focus-within {
+      border-color: var(--login-primary);
+    }
+    
+    input {
+      flex: 1;
+      border: none;
+      height: var(--login-input-height);
+      padding: 0 12px;
+      font-size: 14px;
+      background: transparent;
+      
+      &:focus {
+        outline: none;
+        border: none;
+      }
+    }
+    
+    .send-code-btn {
+      min-width: 120px;
+      margin: 3px;
+      border: none;
+      border-radius: 3px;
+      background: var(--login-primary);
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      
+      &.disabled {
+        background: rgba(43, 129, 255, 0.6);
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  // 登录按钮
+  .submit-btn {
+    width: 100%;
+    height: var(--login-input-height);
+    margin-top: 24px;
+    border: none;
+    border-radius: 22px;
+    background: linear-gradient(45deg, #2B81FF, #34B3F1);
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: linear-gradient(45deg, #2472E8, #30A4DC);
+      transform: translateY(-1px);
+    }
+  }
+
+  // 底部文字
+  .login-footer {
+    margin-top: 24px;
+    text-align: center;
+    color: #64748B;
+    font-size: 14px;
+    
+    .agreement-links {
+      margin-top: 8px;
+      
+      a {
+        color: var(--login-primary);
+        text-decoration: none;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  // 修改弹窗样式
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    
+    &::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0);
+      transition: background-color 0.3s ease;
+    }
+    
+    &.enter::before {
+      animation: maskFadeIn 0.3s ease forwards;
+    }
+    
+    &.exit::before {
+      animation: maskFadeOut 0.3s ease forwards;
+    }
+  }
+
+  .modal-content2 {
+    position: relative; // 确保内容在遮罩层上面
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+    
+    &.enter {
+      animation: modalEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    
+    &.exit {
+      animation: modalExit 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      
+      h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+      }
+      
+      .close-btn {
+        border: none;
+        background: none;
+        font-size: 24px;
+        color: #999;
+        cursor: pointer;
+        padding: 4px;
+        line-height: 1;
+        transition: color 0.2s;
+        
+        &:hover {
+          color: #666;
+        }
+      }
+    }
+    
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      max-height: calc(80vh - 65px);
+    }
+  }
+
+  .agreement-content {
+    h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin: 24px 0 16px;
+      
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+    
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #666;
+      margin: 8px 0;
+    }
+  }
+
+  @keyframes maskFadeIn {
+    from {
+      background: rgba(0, 0, 0, 0);
+    }
+    to {
+      background: rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  @keyframes maskFadeOut {
+    from {
+      background: rgba(0, 0, 0, 0.5);
+    }
+    to {
+      background: rgba(0, 0, 0, 0);
+    }
+  }
+
+  @keyframes modalEnter {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes modalExit {
+    from {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.95) translateY(10px);
+    }
+  }
+
+  // 暗色主题适配
+  .dark {
+    .modal-content {
+      background: #1a1a1a;
+      
+      .modal-header {
+        border-color: #333;
+        
+        h3 {
+          color: #e1e1e1;
+        }
+      }
+      
+      .agreement-content {
+        h4 {
+          color: #e1e1e1;
+        }
+        
+        p {
+          color: #999;
+        }
+      }
+    }
+  }
+}
+
+// 媒体查询也放在命名空间内
+@media (max-width: 1024px) {
+  .page-login {
+    .login-left {
+      display: none;
+    }
+    
+    .login-right {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .page-login {
+    .login-right {
+      padding: 20px;
+    }
+  }
+}
+
+// 添加下拉动画
+@keyframes dropDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes dropUp {
+  from {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(0.95);
+  }
+}

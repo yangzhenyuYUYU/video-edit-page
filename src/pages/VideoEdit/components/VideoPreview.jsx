@@ -9,6 +9,108 @@ import {
   VideoCameraOutlined
 } from '@ant-design/icons';
 import './VideoPreview.scss';
+import { TRACK_TYPES } from '../constants';
+
+// 文本元素组件
+const TextElement = ({ 
+  item, 
+  isSelected, 
+  containerSize, 
+  containerRef,
+  onSelect,
+  onChange,
+  onResizeStart,
+  onRotateStart
+}) => {
+  const [dragStartPos, setDragStartPos] = useState(null);
+  const x = (item.x / 100) * containerSize.width;
+  const y = (item.y / 100) * containerSize.height;
+
+  // 处理拖拽开始
+  const handleDragStart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragStartPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      itemX: item.x,
+      itemY: item.y
+    });
+    
+    onSelect?.(item);
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+  };
+
+  // 处理拖拽移动
+  const handleDragMove = useCallback((e) => {
+    if (!dragStartPos) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - dragStartPos.x;
+    const y = e.clientY - rect.top - dragStartPos.y;
+    
+    const newX = (x / containerSize.width) * 100;
+    const newY = (y / containerSize.height) * 100;
+    
+    const updatedItem = {
+      ...item,
+      x: Math.max(0, Math.min(100, newX)),
+      y: Math.max(0, Math.min(100, newY))
+    };
+    
+    onChange?.(updatedItem);
+  }, [dragStartPos, item, containerSize, containerRef, onChange]);
+
+  // 处理拖拽结束
+  const handleDragEnd = useCallback(() => {
+    setDragStartPos(null);
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+  }, [handleDragMove]);
+
+  // 清理事件监听
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+  }, [handleDragMove, handleDragEnd]);
+
+  return (
+    <div 
+      className={`text-element ${isSelected ? 'selected' : ''}`}
+      style={{
+        transform: `translate(${x}px, ${y}px) rotate(${item.rotation}deg) scale(${item.scale})`,
+        opacity: item.opacity,
+        position: 'absolute',
+        cursor: 'move',
+        ...item.textStyle
+      }}
+      onMouseDown={handleDragStart}
+    >
+      <div className="text-content">
+        {item.content}
+      </div>
+      
+      {isSelected && (
+        <div className="resize-rotate-handles">
+          {/* 缩放控制点 */}
+          <div className="handle nw" onMouseDown={(e) => onResizeStart(e, 'nw')} />
+          <div className="handle ne" onMouseDown={(e) => onResizeStart(e, 'ne')} />
+          <div className="handle se" onMouseDown={(e) => onResizeStart(e, 'se')} />
+          <div className="handle sw" onMouseDown={(e) => onResizeStart(e, 'sw')} />
+          
+          {/* 旋转控制点 */}
+          <div className="rotate-handle" onMouseDown={onRotateStart} />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const VideoPreview = ({ 
   width = '100%', 
@@ -24,18 +126,14 @@ const VideoPreview = ({
   onItemChange
 }) => {
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [itemStart, setItemStart] = useState({ x: 0, y: 0 });
-  const [isResizing, setResizing] = useState(false);
-  const [isRotating, setRotating] = useState(false);
-  const [rotateStart, setRotateStart] = useState({ x: 0, y: 0, initialRotation: 0 });
-  
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [resizeStart, setResizeStart] = useState(null);
+  const [rotateStart, setRotateStart] = useState(null);
+
   // Handle fullscreen toggle
   const handleFullscreen = () => {
     if (!isFullscreen) {
@@ -113,33 +211,18 @@ const VideoPreview = ({
     }
   }, [videoSrc, currentTime, isPlaying]);
 
-  // 渲染预览效果
-  const renderPreviewOverlay = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    
-    // 确保canvas尺寸与显示尺寸匹配
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    
-    // 清空画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // 获取当前时间点的活动项目
-    const activeItems = tracks
+  // 获取当前时间点的活动项目
+  const getActiveItems = useCallback(() => {
+    return tracks
       .flatMap(track => 
         track.items.map(item => ({
           ...item,
           type: track.type,
           zIndex: item.zIndex || 0,
-          // 为新添加的元素设置默认位置和尺寸
-          x: item.x ?? 50, // 默认水平居中
-          y: item.y ?? 50, // 默认垂直居中
-          width: item.width ?? (item.type === 'text' ? 30 : 20), // 默认宽度
-          height: item.height ?? 'auto', // 默认高度
+          x: item.x ?? 50,
+          y: item.y ?? 50,
+          width: item.width ?? (item.type === TRACK_TYPES.TEXT ? 30 : 20),
+          height: item.height ?? 'auto',
           rotation: item.rotation ?? 0,
           scale: item.scale ?? 1,
           opacity: item.opacity ?? 1
@@ -150,379 +233,228 @@ const VideoPreview = ({
         item.start + item.duration > currentTime
       )
       .sort((a, b) => a.zIndex - b.zIndex);
+  }, [tracks, currentTime]);
 
-    console.log('Active items:', activeItems);
-    
-    // 渲染每个活动项目
-    activeItems.forEach(item => {
-      const x = (item.x / 100) * canvas.width;
-      const y = (item.y / 100) * canvas.height;
-      
-      ctx.save();
-      
-      // 应用变换
-      ctx.translate(x, y);
-      ctx.rotate(item.rotation * Math.PI / 180);
-      ctx.scale(item.scale, item.scale);
-      ctx.globalAlpha = item.opacity;
-      
-      // 根据类型渲染
-      switch(item.type) {
-        case 'text':
-          renderText(ctx, item, canvas);
-          break;
-        case 'image':
-          renderImage(ctx, item, canvas);
-          break;
-        // 添加其他类型的渲染...
-      }
-      
-      // 如果是选中项，绘制边框和控制点
-      if (selectedItem?.id === item.id) {
-        drawSelectionFrame(ctx, item, canvas);
-      }
-      
-      ctx.restore();
-    });
-  }, [tracks, currentTime, selectedItem]);
+  // 处理拖拽
+  const handleDrag = (itemId, { x, y }) => {
+    const item = getActiveItems().find(item => item.id === itemId);
+    if (!item) return;
 
-  // 渲染文本
-  const renderText = (ctx, item, canvas) => {
-    const { content, textStyle = {} } = item;
-    
-    // 设置文本样式
-    ctx.font = `${textStyle.fontWeight || 'normal'} ${textStyle.fontSize || 24}px ${textStyle.fontFamily || 'Arial'}`;
-    ctx.fillStyle = textStyle.color || '#ffffff';
-    ctx.textAlign = textStyle.textAlign || 'center';
-    ctx.textBaseline = 'middle';
-    
-    // 添加文本阴影
-    if (textStyle.textShadow) {
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-    }
-    
-    // 绘制文本
-    ctx.fillText(content, 0, 0);
-    
-    // 重置阴影
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-  };
-
-  // 渲染图片
-  const renderImage = (ctx, item, canvas) => {
-    if (!item.src) return;
-    
-    const image = new Image();
-    image.src = item.src;
-    
-    image.onload = () => {
-      const width = item.width ? (item.width / 100) * canvas.width : image.width;
-      const height = item.height === 'auto' ? (width * image.height / image.width) : (item.height / 100) * canvas.height;
-      
-      ctx.drawImage(image, -width/2, -height/2, width, height);
-      
-      // 重新渲染以确保图片显示
-      renderPreviewOverlay();
-    };
-  };
-
-  // 绘制选中框和控制点
-  const drawSelectionFrame = (ctx, item, canvas) => {
-    const width = item.width ? (item.width / 100) * canvas.width : 100;
-    const height = item.height === 'auto' ? width : (item.height / 100) * canvas.height;
-    
-    // 绘制选中框
-    ctx.strokeStyle = '#1890ff';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-    ctx.strokeRect(-width/2, -height/2, width, height);
-    
-    // 绘制控制点
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#1890ff';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([]);
-    
-    // 角点 - 添加缩放控制点
-    const controlPoints = [
-      { x: -width/2, y: -height/2, cursor: 'nw-resize' }, // 左上
-      { x: width/2, y: -height/2, cursor: 'ne-resize' },  // 右上
-      { x: width/2, y: height/2, cursor: 'se-resize' },   // 右下
-      { x: -width/2, y: height/2, cursor: 'sw-resize' },  // 左下
-      { x: 0, y: -height/2, cursor: 'n-resize' },         // 上中
-      { x: width/2, y: 0, cursor: 'e-resize' },           // 右中
-      { x: 0, y: height/2, cursor: 's-resize' },          // 下中
-      { x: -width/2, y: 0, cursor: 'w-resize' }           // 左中
-    ];
-    
-    controlPoints.forEach(point => {
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    });
-    
-    // 旋转控制点
-    const rotateHandleDistance = 30;
-    ctx.beginPath();
-    ctx.moveTo(0, -height/2);
-    ctx.lineTo(0, -height/2 - rotateHandleDistance);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.arc(0, -height/2 - rotateHandleDistance, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  };
-
-  // 处理鼠标事件
-  const handleMouseDown = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // 检查是否点击到控制点
-    if (selectedItem) {
-      const controlPoint = findClickedControlPoint(x, y);
-      if (controlPoint) {
-        // 处理控制点操作
-        handleControlPointDrag(controlPoint, x, y);
-        return;
-      }
-    }
-    
-    // 检查是否点击到元素
-    const clickedItem = findClickedItem(x, y);
-    
-    if (clickedItem) {
-      setSelectedItem(clickedItem);
-      onItemSelect?.(clickedItem);
-      
-      setIsDragging(true);
-      setDragStart({ x, y });
-      setItemStart({ 
-        x: clickedItem.x, 
-        y: clickedItem.y 
-      });
-    } else {
-      setSelectedItem(null);
-      onItemSelect?.(null);
-    }
-  };
-
-  const handleMouseMove = (e) => {
-    if (isRotating) {
-      handleRotate(e);
-    } else if (isResizing) {
-      handleResize(e);
-    } else if (isDragging) {
-      const canvas = canvasRef.current;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      const deltaX = x - dragStart.x;
-      const deltaY = y - dragStart.y;
-      
-      const newX = itemStart.x + (deltaX / rect.width) * 100;
-      const newY = itemStart.y + (deltaY / rect.height) * 100;
-      
-      const updatedItem = {
-        ...selectedItem,
-        x: Math.max(0, Math.min(100, newX)),
-        y: Math.max(0, Math.min(100, newY))
-      };
-      
-      onItemChange?.(updatedItem);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setResizing(false);
-    setRotating(false);
-  };
-
-  // 查找点击的元素
-  const findClickedItem = (x, y) => {
-    const canvas = canvasRef.current;
-    const activeItems = tracks
-      .flatMap(track => 
-        track.items.map(item => ({...item, type: track.type}))
-      )
-      .filter(item => 
-        item.start <= currentTime && 
-        item.start + item.duration > currentTime
-      )
-      .reverse(); // 从上层往下检查
-    
-    return activeItems.find(item => {
-      const itemX = (item.x / 100) * canvas.width;
-      const itemY = (item.y / 100) * canvas.height;
-      const width = (item.width / 100) * canvas.width;
-      const height = item.height === 'auto' ? width : (item.height / 100) * canvas.height;
-      
-      return x >= itemX - width/2 &&
-             x <= itemX + width/2 &&
-             y >= itemY - height/2 &&
-             y <= itemY + height/2;
-    });
-  };
-
-  // 查找点击的控制点
-  const findClickedControlPoint = (x, y) => {
-    if (!selectedItem) return null;
-    
-    const canvas = canvasRef.current;
-    const width = (selectedItem.width / 100) * canvas.width;
-    const height = selectedItem.height === 'auto' ? width : (selectedItem.height / 100) * canvas.height;
-    const itemX = (selectedItem.x / 100) * canvas.width;
-    const itemY = (selectedItem.y / 100) * canvas.height;
-    
-    // 定义控制点位置
-    const controlPoints = [
-      { x: itemX - width/2, y: itemY - height/2, type: 'nw' },
-      { x: itemX + width/2, y: itemY - height/2, type: 'ne' },
-      { x: itemX + width/2, y: itemY + height/2, type: 'se' },
-      { x: itemX - width/2, y: itemY + height/2, type: 'sw' },
-      { x: itemX, y: itemY - height/2 - 30, type: 'rotate' }
-    ];
-    
-    // 检查是否点击到控制点
-    return controlPoints.find(point => {
-      const dx = x - point.x;
-      const dy = y - point.y;
-      return Math.sqrt(dx * dx + dy * dy) <= 6;
-    });
-  };
-
-  // 处理控制点拖拽
-  const handleControlPointDrag = (controlPoint, startX, startY) => {
-    const type = controlPoint.type;
-    if (type === 'rotate') {
-      setRotating(true);
-      setRotateStart({
-        x: startX,
-        y: startY,
-        initialRotation: selectedItem.rotation || 0
-      });
-    } else {
-      setResizing(true);
-      setDragStart({ x: startX, y: startY });
-      setItemStart({
-        width: selectedItem.width,
-        height: selectedItem.height
-      });
-    }
-  };
-
-  // 处理旋转
-  const handleRotate = (e) => {
-    if (!isRotating || !selectedItem) return;
-    
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const centerX = (selectedItem.x / 100) * rect.width;
-    const centerY = (selectedItem.y / 100) * rect.height;
-    
-    const startAngle = Math.atan2(
-      rotateStart.y - centerY,
-      rotateStart.x - centerX
-    );
-    const currentAngle = Math.atan2(
-      e.clientY - rect.top - centerY,
-      e.clientX - rect.left - centerX
-    );
-    
-    let rotation = (currentAngle - startAngle) * (180 / Math.PI) + rotateStart.initialRotation;
-    rotation = ((rotation % 360) + 360) % 360; // 标准化角度到0-360
-    
     const updatedItem = {
-      ...selectedItem,
-      rotation
+      ...item,
+      x: (x / containerSize.width) * 100,
+      y: (y / containerSize.height) * 100
     };
-    
+
     onItemChange?.(updatedItem);
   };
 
   // 处理缩放
-  const handleResize = (e) => {
-    if (!isResizing || !selectedItem) return;
-    
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const deltaX = e.clientX - dragStart.x;
-    const deltaY = e.clientY - dragStart.y;
-    
-    let newWidth = itemStart.width;
-    let newHeight = itemStart.height;
-    
-    // 根据不同的控制点计算新的尺寸
-    if (isResizing.includes('w')) {
-      newWidth = itemStart.width - (deltaX / rect.width) * 100;
-    } else if (isResizing.includes('e')) {
-      newWidth = itemStart.width + (deltaX / rect.width) * 100;
-    }
-    
-    if (isResizing.includes('n')) {
-      newHeight = itemStart.height - (deltaY / rect.height) * 100;
-    } else if (isResizing.includes('s')) {
-      newHeight = itemStart.height + (deltaY / rect.height) * 100;
-    }
-    
-    // 确保最小尺寸
-    newWidth = Math.max(10, newWidth);
-    newHeight = Math.max(10, newHeight);
-    
+  const handleResize = (itemId, { width, height }) => {
+    const item = getActiveItems().find(item => item.id === itemId);
+    if (!item) return;
+
     const updatedItem = {
-      ...selectedItem,
-      width: newWidth,
-      height: newHeight
+      ...item,
+      width: (width / containerSize.width) * 100,
+      height: (height / containerSize.height) * 100
     };
-    
+
     onItemChange?.(updatedItem);
   };
 
-  // 设置渲染循环
-  useEffect(() => {
-    let animationId;
-    
-    const animate = () => {
-      renderPreviewOverlay();
-      animationId = requestAnimationFrame(animate);
+  // 处理旋转
+  const handleRotate = (itemId, rotation) => {
+    const item = getActiveItems().find(item => item.id === itemId);
+    if (!item) return;
+
+    const updatedItem = {
+      ...item,
+      rotation
     };
-    
-    animate();
-    
-    return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
+
+    onItemChange?.(updatedItem);
+  };
+
+  // 更新容器尺寸
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setContainerSize({
+          width: rect.width,
+          height: rect.height
+        });
       }
     };
-  }, [renderPreviewOverlay]);
 
-  // 添加事件监听
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  // 处理缩放开始
+  const handleResizeStart = (e, corner) => {
+    e.stopPropagation();
+    if (!selectedItem) return;
+
+    const rect = e.target.getBoundingClientRect();
+    setResizeStart({
+      corner,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: selectedItem.width,
+      startHeight: selectedItem.height
+    });
+
+    // 添加全局鼠标事件监听
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+  };
+
+  // 处理缩放移动
+  const handleResizeMove = useCallback((e) => {
+    if (!resizeStart || !selectedItem) return;
+
+    const deltaX = e.clientX - resizeStart.startX;
+    const deltaY = e.clientY - resizeStart.startY;
+    let newWidth = resizeStart.startWidth;
+    let newHeight = resizeStart.startHeight;
+
+    // 根据不同角落调整大小
+    switch (resizeStart.corner) {
+      case 'se':
+        newWidth += deltaX;
+        newHeight += deltaY;
+        break;
+      case 'sw':
+        newWidth -= deltaX;
+        newHeight += deltaY;
+        break;
+      case 'ne':
+        newWidth += deltaX;
+        newHeight -= deltaY;
+        break;
+      case 'nw':
+        newWidth -= deltaX;
+        newHeight -= deltaY;
+        break;
+    }
+
+    // 确保最小尺寸
+    newWidth = Math.max(20, newWidth);
+    newHeight = Math.max(20, newHeight);
+
+    handleResize(selectedItem.id, {
+      width: newWidth,
+      height: newHeight
+    });
+  }, [resizeStart, selectedItem, handleResize]);
+
+  // 处理缩放结束
+  const handleResizeEnd = useCallback(() => {
+    setResizeStart(null);
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+  }, [handleResizeMove]);
+
+  // 处理旋转开始
+  const handleRotateStart = (e) => {
+    e.stopPropagation();
+    if (!selectedItem) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.left + (selectedItem.x / 100) * rect.width;
+    const centerY = rect.top + (selectedItem.y / 100) * rect.height;
+
+    setRotateStart({
+      startX: e.clientX,
+      startY: e.clientY,
+      centerX,
+      centerY,
+      startRotation: selectedItem.rotation || 0
+    });
+
+    // 添加全局鼠标事件监听
+    document.addEventListener('mousemove', handleRotateMove);
+    document.addEventListener('mouseup', handleRotateEnd);
+  };
+
+  // 处理旋转移动
+  const handleRotateMove = useCallback((e) => {
+    if (!rotateStart || !selectedItem) return;
+
+    const startAngle = Math.atan2(
+      rotateStart.startY - rotateStart.centerY,
+      rotateStart.startX - rotateStart.centerX
+    );
+
+    const currentAngle = Math.atan2(
+      e.clientY - rotateStart.centerY,
+      e.clientX - rotateStart.centerX
+    );
+
+    let rotation = ((currentAngle - startAngle) * (180 / Math.PI) + rotateStart.startRotation) % 360;
+    if (rotation < 0) rotation += 360;
+
+    handleRotate(selectedItem.id, rotation);
+  }, [rotateStart, selectedItem, handleRotate]);
+
+  // 处理旋转结束
+  const handleRotateEnd = useCallback(() => {
+    setRotateStart(null);
+    document.removeEventListener('mousemove', handleRotateMove);
+    document.removeEventListener('mouseup', handleRotateEnd);
+  }, [handleRotateMove]);
+
+  // 更新事件监听器清理
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    canvas.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
     return () => {
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.removeEventListener('mousemove', handleRotateMove);
+      document.removeEventListener('mouseup', handleRotateEnd);
     };
-  }, [isDragging, isResizing, isRotating, selectedItem, dragStart, itemStart, rotateStart]);
+  }, [handleResizeMove, handleResizeEnd, handleRotateMove, handleRotateEnd]);
+
+  // 渲染文本元素
+  const renderTextElement = (item) => {
+    const isSelected = selectedItem?.id === item.id;
+    
+    return (
+      <TextElement
+        key={item.id}
+        item={item}
+        isSelected={isSelected}
+        containerSize={containerSize}
+        containerRef={containerRef}
+        onSelect={(item) => {
+          setSelectedItem(item);
+          onItemSelect?.(item);
+        }}
+        onChange={onItemChange}
+        onResizeStart={handleResizeStart}
+        onRotateStart={handleRotateStart}
+      />
+    );
+  };
+
+  // 渲染元素层
+  const renderElementsLayer = () => {
+    const activeItems = getActiveItems();
+    
+    return (
+      <div className="elements-layer">
+        {activeItems.map(item => {
+          if (item.type === TRACK_TYPES.TEXT) {
+            return renderTextElement(item);
+          }
+          // 处理其他类型的元素...
+          return null;
+        })}
+      </div>
+    );
+  };
 
   // 渲染网格背景
   const renderGridBackground = () => {
@@ -579,6 +511,32 @@ const VideoPreview = ({
     }
   }, [tracks]);
 
+  // 监听轨道选择变化
+  useEffect(() => {
+    const handleTrackItemSelect = (event) => {
+      const { detail } = event;
+      if (!detail) return;
+      
+      // 只处理文本和元素类型
+      if (detail.type === TRACK_TYPES.TEXT || detail.type === TRACK_TYPES.ELEMENT) {
+        const activeItems = getActiveItems();
+        const selectedItem = activeItems.find(item => item.id === detail.itemId);
+        if (selectedItem) {
+          setSelectedItem(selectedItem);
+          onItemSelect?.(selectedItem);
+        }
+      } else {
+        setSelectedItem(null);
+      }
+    };
+
+    // 监听轨道选择事件
+    window.addEventListener('track-item-select', handleTrackItemSelect);
+    return () => {
+      window.removeEventListener('track-item-select', handleTrackItemSelect);
+    };
+  }, [getActiveItems, onItemSelect]);
+
   return (
     <div 
       className="video-preview-container" 
@@ -594,22 +552,9 @@ const VideoPreview = ({
               muted={true}
               playsInline
             />
-            <canvas 
-              ref={canvasRef}
-              className={`effects-canvas ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isRotating ? 'rotating' : ''}`}
-            />
+            {renderElementsLayer()}
           </>
-        ) : (
-          <div className="grid-background">
-            <div className="grid-pattern"></div>
-            <div className="upload-hint">
-              <div className="hint-icon">
-                <VideoCameraOutlined />
-              </div>
-              <div className="hint-text">点击左侧素材添加视频</div>
-            </div>
-          </div>
-        )}
+        ) : renderGridBackground()}
       </div>
       
       <div className="preview-controls">

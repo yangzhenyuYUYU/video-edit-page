@@ -1,12 +1,19 @@
 import React from 'react';
+import AppRouter from './router';
+import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import './App.css';
-import VideoEdit from './pages/VideoEdit';
+import 'antd/dist/reset.css';
+
+console.log(process.env.REACT_APP_BASE_URL);
 
 function App() {
   return (
-    <div className="App">
-      <VideoEdit />
-    </div>
+    <AuthProvider>
+      <ThemeProvider>
+        <AppRouter />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

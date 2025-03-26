@@ -38,6 +38,7 @@ const Track = ({
     <div
       className={`track ${isCollapsed ? 'collapsed' : ''} type-${track.type}`}
       data-track-id={track.id}
+      data-track-type={track.type}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();

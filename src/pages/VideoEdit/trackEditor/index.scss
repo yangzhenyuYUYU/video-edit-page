@@ -296,7 +296,7 @@
   .timeline {
     flex: 1;
     position: relative;
-    overflow: hidden;
+    overflow: auto;
     background: #fafafa;
     display: flex;
     flex-direction: column;
@@ -310,10 +310,12 @@
       border-bottom: 1px solid #e8e8e8;
       position: sticky;
       top: 0;
+      left: 0;
       z-index: 2;
       transform-origin: left;
       box-sizing: border-box;
       padding-left: 36px;
+      overflow: visible;
 
       // 游标指示器样式
       .cursor-indicator {
@@ -349,6 +351,7 @@
         align-items: flex-end;
         padding-bottom: 4px;
         border-right: 1px solid #e8e8e8;
+        pointer-events: none;
 
         .ruler-label {
           position: absolute;
@@ -390,8 +393,7 @@
       flex-direction: column;
       padding-left: 36px;
       height: auto;
-      overflow-y: auto;
-      overflow-x: auto;
+      overflow: visible;
       // 空状态样式
       .empty-timeline-state {
         position: absolute;

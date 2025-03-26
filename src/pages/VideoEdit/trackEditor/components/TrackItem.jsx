@@ -22,7 +22,8 @@ const TrackItem = ({
     startX: 0,
     startY: 0,
     originalStart: 0,
-    mouseOffsetX: 0
+    mouseOffsetX: 0,
+    currentTrackId: null
   });
   const resizeRef = useRef({
     isResizing: false,
@@ -41,13 +42,18 @@ const TrackItem = ({
   // 计算像素到时间的转换
   const pixelsToTime = useCallback((pixels) => {
     const baseWidthPerSecond = 100;
-    return pixels / (baseWidthPerSecond * zoom);
+    return parseFloat((pixels / (baseWidthPerSecond * zoom)).toFixed(1));
   }, [zoom]);
 
   // 将时间吸附到最近的0.1秒
   const snapToGrid = useCallback((time) => {
-    return Math.round(time * 10) / 10;
+    return parseFloat((Math.round(time * 10) / 10).toFixed(1));
   }, []);
+
+  // 检查轨道类型是否匹配
+  const isTrackTypeMatching = useCallback((targetTrack) => {
+    return targetTrack.getAttribute('data-track-type') === track.type;
+  }, [track.type]);
 
   // 处理拖拽开始
   const handleDragStart = (e) => {
@@ -60,11 +66,16 @@ const TrackItem = ({
       startX: e.clientX,
       startY: e.clientY,
       originalStart: item.start,
-      mouseOffsetX: e.clientX - rect.left
+      mouseOffsetX: e.clientX - rect.left,
+      currentTrackId: track.id
     };
     
     document.addEventListener('mousemove', handleDrag);
     document.addEventListener('mouseup', handleDragEnd);
+    
+    // 添加拖拽时的样式
+    document.body.style.cursor = 'grabbing';
+    itemRef.current.classList.add('dragging');
     
     onDragStart?.(item.id);
   };
@@ -79,6 +90,28 @@ const TrackItem = ({
     const scrollLeft = timelineElement.scrollLeft;
     const rect = timelineElement.getBoundingClientRect();
     
+    // 获取鼠标所在的轨道
+    const tracks = document.querySelectorAll('.track');
+    const mouseY = e.clientY;
+    let targetTrack = null;
+    let targetTrackId = dragRef.current.currentTrackId;
+
+    tracks.forEach(trackElement => {
+      const trackRect = trackElement.getBoundingClientRect();
+      if (mouseY >= trackRect.top && mouseY <= trackRect.bottom) {
+        if (isTrackTypeMatching(trackElement)) {
+          targetTrack = trackElement;
+          targetTrackId = trackElement.getAttribute('data-track-id');
+          trackElement.classList.add('drag-target');
+        } else {
+          trackElement.classList.add('drag-target-invalid');
+        }
+      } else {
+        trackElement.classList.remove('drag-target');
+        trackElement.classList.remove('drag-target-invalid');
+      }
+    });
+    
     // 计算新的开始时间
     const mouseX = e.clientX - rect.left + scrollLeft;
     const offsetX = mouseX - dragRef.current.mouseOffsetX - trackHeaderWidth;
@@ -87,7 +120,7 @@ const TrackItem = ({
     // 确保不会超出时间轴范围
     const clampedStart = Math.max(0, Math.min(newStartTime, duration - item.duration));
     
-    onDrag?.(item.id, clampedStart);
+    onDrag?.(item.id, clampedStart, targetTrackId);
   };
 
   // 处理拖拽结束
@@ -95,6 +128,19 @@ const TrackItem = ({
     dragRef.current.isDragging = false;
     document.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', handleDragEnd);
+    
+    // 移除所有轨道的拖拽相关样式
+    document.querySelectorAll('.track').forEach(track => {
+      track.classList.remove('drag-target');
+      track.classList.remove('drag-target-invalid');
+    });
+    
+    // 移除拖拽样式
+    document.body.style.cursor = '';
+    if (itemRef.current) {
+      itemRef.current.classList.remove('dragging');
+    }
+    
     onDragEnd?.();
   };
 
@@ -133,11 +179,11 @@ const TrackItem = ({
     if (resizeRef.current.direction === 'left') {
       const potentialNewStart = snapToGrid(resizeRef.current.originalStart + deltaTime);
       const maxStart = resizeRef.current.originalStart + resizeRef.current.originalDuration - 0.1;
-      newStart = Math.max(0, Math.min(potentialNewStart, maxStart));
-      newDuration = resizeRef.current.originalDuration - (newStart - resizeRef.current.originalStart);
+      newStart = parseFloat(Math.max(0, Math.min(potentialNewStart, maxStart)).toFixed(1));
+      newDuration = parseFloat((resizeRef.current.originalDuration - (newStart - resizeRef.current.originalStart)).toFixed(1));
     } else {
       const potentialNewDuration = snapToGrid(resizeRef.current.originalDuration + deltaTime);
-      newDuration = Math.max(0.1, Math.min(potentialNewDuration, duration - newStart));
+      newDuration = parseFloat(Math.max(0.1, Math.min(potentialNewDuration, duration - newStart)).toFixed(1));
     }
     
     onResize?.(item.id, newStart, newDuration);
@@ -188,7 +234,7 @@ const TrackItem = ({
             </div>
             <div className="audio-info">
               <div className="audio-name">{item.content}</div>
-              <div className="audio-duration">{item.duration}s</div>
+              <div className="audio-duration">{item.duration.toFixed(1)}s</div>
             </div>
           </div>
         );
@@ -212,6 +258,21 @@ const TrackItem = ({
     }
   };
 
+  // 处理点击选择
+  const handleSelect = (e) => {
+    e.stopPropagation();
+    onSelect?.(item.id);
+
+    // 触发预览区域的选中事件
+    const selectEvent = new CustomEvent('track-item-select', {
+      detail: {
+        itemId: item.id,
+        type: track.type
+      }
+    });
+    window.dispatchEvent(selectEvent);
+  };
+
   return (
     <div
       ref={itemRef}
@@ -220,10 +281,7 @@ const TrackItem = ({
         left: `${timeToPixels(item.start)}px`,
         width: `${timeToPixels(item.duration)}px`
       }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect?.(item.id);
-      }}
+      onClick={handleSelect}
       onMouseDown={handleDragStart}
     >
       {renderContent()}

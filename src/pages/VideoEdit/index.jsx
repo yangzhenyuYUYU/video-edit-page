@@ -58,36 +58,36 @@ const VideoEdit = () => {
 
   // 计算视频总时长
   const calculateTotalDuration = useCallback(() => {
-    const videoTrack = tracks.find(track => track.type === 'video');
-    if (!videoTrack || !videoTrack.items.length) return 0;
+    if (!tracks || tracks.length === 0) return 10;
     
-    return videoTrack.items.reduce((maxEnd, item) => {
-      const itemEnd = item.start + item.duration;
-      return Math.max(maxEnd, itemEnd);
-    }, 0);
+    // 遍历所有轨道，找出最长的时长
+    let maxDuration = 0;
+    tracks.forEach(track => {
+      track.items.forEach(item => {
+        const itemEnd = item.start + item.duration;
+        if (itemEnd > maxDuration) {
+          maxDuration = itemEnd;
+        }
+      });
+    });
+    
+    // 确保最小时长为10秒，并添加一些额外空间
+    return Math.max(maxDuration + 5, 10);
   }, [tracks]);
 
   // 处理轨道变化
   const handleTrackChange = (newTracks) => {
     console.log('handleTrackChange called with:', newTracks);
     
-    // 过滤掉空轨道（没有项目的轨道），但始终保留视频轨道
-    const processedTracks = newTracks.filter(track => 
-      // 保留视频轨道或有内容的轨道
-      track.type === TRACK_TYPES.VIDEO || track.items.length > 0
-    );
-    
-    // 确保至少保留一个视频轨道，即使它是空的
-    const hasVideoTrack = processedTracks.some(track => track.type === TRACK_TYPES.VIDEO);
-    if (!hasVideoTrack) {
-      const emptyVideoTrack = {
-        id: `video-track-${Date.now()}`,
-        type: TRACK_TYPES.VIDEO,
-        name: '视频轨道',
-        items: []
-      };
-      processedTracks.unshift(emptyVideoTrack);
-    }
+    // 过滤轨道：只保留有内容的轨道
+    const processedTracks = newTracks.filter(track => {
+      // 如果是视频轨道且有内容，保留
+      if (track.type === TRACK_TYPES.VIDEO && track.items.length > 0) {
+        return true;
+      }
+      // 如果是其他轨道，只有在有内容时才保留
+      return track.items && track.items.length > 0;
+    });
     
     console.log('Processed tracks for update:', processedTracks);
     
@@ -98,11 +98,8 @@ const VideoEdit = () => {
     if (selectedVideoId) {
       console.log(`Updating tracks for video area: ${selectedVideoId}`);
       
-      // 保持当前选中区域的轨道数据与当前显示的轨道数据同步 - 使用深拷贝确保数据独立
       setAreaTrackMap(prevMap => {
-        // 创建新的映射对象，而不是修改原对象
         const newMap = { ...prevMap };
-        // 为当前选中的区域设置深拷贝的轨道数据
         newMap[selectedVideoId] = JSON.parse(JSON.stringify(processedTracks));
         return newMap;
       });
@@ -672,7 +669,7 @@ const VideoEdit = () => {
     }
     
     // 创建更新后的轨道数据
-    const updatedTracks = tracks.map(track => {
+    let updatedTracks = tracks.map(track => {
       if (track.id === trackId) {
         // 从轨道中删除该项目
         return {
@@ -681,6 +678,16 @@ const VideoEdit = () => {
         };
       }
       return track;
+    });
+
+    // 过滤掉空轨道（除了视频轨道）
+    updatedTracks = updatedTracks.filter(track => {
+      // 如果是视频轨道且有内容，保留
+      if (track.type === TRACK_TYPES.VIDEO && track.items.length > 0) {
+        return true;
+      }
+      // 如果是其他轨道，只有在有内容时才保留
+      return track.items.length > 0;
     });
     
     // 如果是视频项目，还需要从areaTrackMap中也同步删除
@@ -698,7 +705,8 @@ const VideoEdit = () => {
         // 检查所有区域，并从中删除该视频项
         Object.keys(newMap).forEach(areaId => {
           if (newMap[areaId]) {
-            const updatedAreaTracks = newMap[areaId].map(track => {
+            // 先删除项目
+            let updatedAreaTracks = newMap[areaId].map(track => {
               if (track.type === TRACK_TYPES.VIDEO) {
                 return {
                   ...track,
@@ -706,6 +714,16 @@ const VideoEdit = () => {
                 };
               }
               return track;
+            });
+
+            // 过滤掉空轨道（除了视频轨道）
+            updatedAreaTracks = updatedAreaTracks.filter(track => {
+              // 如果是视频轨道且有内容，保留
+              if (track.type === TRACK_TYPES.VIDEO && track.items.length > 0) {
+                return true;
+              }
+              // 如果是其他轨道，只有在有内容时才保留
+              return track.items.length > 0;
             });
             
             // 如果删除的是该区域本身，则从映射中删除整个区域
@@ -725,8 +743,8 @@ const VideoEdit = () => {
         const currentAreaTracks = prevMap[selectedVideoId];
         if (!currentAreaTracks) return prevMap;
         
-        // 在该区域的轨道数据中也删除这个项目
-        const updatedAreaTracks = currentAreaTracks.map(track => {
+        // 先删除项目
+        let updatedAreaTracks = currentAreaTracks.map(track => {
           if (track.id === trackId) {
             return {
               ...track,
@@ -734,6 +752,16 @@ const VideoEdit = () => {
             };
           }
           return track;
+        });
+
+        // 过滤掉空轨道（除了视频轨道）
+        updatedAreaTracks = updatedAreaTracks.filter(track => {
+          // 如果是视频轨道且有内容，保留
+          if (track.type === TRACK_TYPES.VIDEO && track.items.length > 0) {
+            return true;
+          }
+          // 如果是其他轨道，只有在有内容时才保留
+          return track.items.length > 0;
         });
         
         return {

@@ -35,15 +35,6 @@ const TrackEditor = ({
   const playbackRef = useRef(null);
   const dragItemRef = useRef(null);
 
-  // 计算时间轴总宽度
-  const calculateTimelineWidth = useCallback(() => {
-    const duration = getDuration();
-    const trackHeaderWidth = 36;
-    const baseWidthPerSecond = 100;
-    const scaledWidthPerSecond = baseWidthPerSecond * zoom;
-    return trackHeaderWidth + (duration * scaledWidthPerSecond);
-  }, [zoom]);
-
   // 获取总时长
   const getDuration = useCallback(() => {
     if (tracks.length === 0) return 10;
@@ -51,17 +42,26 @@ const TrackEditor = ({
     let maxEndTime = 0;
     tracks.forEach(track => {
       track.items.forEach(item => {
-        const itemEndTime = item.start + item.duration;
-        if (itemEndTime > maxEndTime) {
-          maxEndTime = itemEndTime;
+        const itemEnd = item.start + item.duration;
+        if (itemEnd > maxEndTime) {
+          maxEndTime = itemEnd;
         }
       });
     });
 
-    const minDuration = videoDuration;
-    const extraSpace = 0.1;
-    return Math.max(maxEndTime * (1 + extraSpace), minDuration);
+    // 添加一些额外空间
+    return Math.max(maxEndTime + 5, videoDuration, 10);
   }, [tracks, videoDuration]);
+
+  // 计算时间轴总宽度
+  const calculateTimelineWidth = useCallback(() => {
+    const duration = getDuration();
+    const trackHeaderWidth = 36;
+    const baseWidthPerSecond = 100; // 每秒100像素
+    const scaledWidthPerSecond = baseWidthPerSecond * zoom;
+    const totalWidth = trackHeaderWidth + (duration * scaledWidthPerSecond);
+    return Math.max(totalWidth, window.innerWidth); // 确保至少和视口一样宽
+  }, [zoom, getDuration]);
 
   // 播放控制
   const handlePlayPause = useCallback(() => {
@@ -72,23 +72,23 @@ const TrackEditor = ({
       }
       setIsPlaying(false);
     } else {
-    const duration = getDuration();
-    const startTime = currentTime >= duration ? 0 : currentTime;
-    setCurrentTime(startTime);
-    setIsPlaying(true);
+      const duration = getDuration();
+      const startTime = currentTime >= duration ? 0 : currentTime;
+      setCurrentTime(startTime);
+      setIsPlaying(true);
 
-    playbackRef.current = setInterval(() => {
-      setCurrentTime(prevTime => {
-        const nextTime = prevTime + 0.1;
-        if (nextTime >= duration) {
+      playbackRef.current = setInterval(() => {
+        setCurrentTime(prevTime => {
+          const nextTime = prevTime + 0.1;
+          if (nextTime >= duration) {
             clearInterval(playbackRef.current);
             playbackRef.current = null;
             setIsPlaying(false);
-          return 0;
-        }
-        return nextTime;
-      });
-    }, 100);
+            return 0;
+          }
+          return nextTime;
+        });
+      }, 100);
     }
   }, [isPlaying, currentTime, getDuration]);
 
@@ -138,48 +138,92 @@ const TrackEditor = ({
     setCollisionWarning([]);
   }, []);
 
-  const handleItemDrag = useCallback((itemId, newStart) => {
-    const track = tracks.find(track => 
-      track.items.some(item => item.id === itemId)
-    );
+  const handleItemDrag = useCallback((itemId, newStart, targetTrackId) => {
+    // 找到原始轨道和项目
+    let sourceTrack = null;
+    let draggedItem = null;
     
-    if (!track) return;
-
-    const item = track.items.find(item => item.id === itemId);
-    if (!item) return;
-
-    const { hasCollision, collidingItemIds } = checkCollision(
-      track.id,
-      itemId,
-      newStart,
-      item.duration
-    );
-    
-    setCollisionWarning(hasCollision ? [...collidingItemIds, itemId] : []);
-
-    if (!hasCollision) {
-      const newTracks = tracks.map(t => {
-        if (t.id === track.id) {
-          return {
-            ...t,
-            items: t.items.map(i => {
-              if (i.id === itemId) {
-                return { ...i, start: newStart };
-              }
-              return i;
-            })
-          };
-        }
-        return t;
+    tracks.forEach(track => {
+      const item = track.items.find(i => i.id === itemId);
+      if (item) {
+        sourceTrack = track;
+        draggedItem = item;
+      }
     });
     
-    setTracks(newTracks);
-    onTrackChange?.(newTracks);
+    if (!sourceTrack || !draggedItem) return;
+
+    // 如果目标轨道和源轨道不同，且目标轨道存在
+    if (targetTrackId && targetTrackId !== sourceTrack.id) {
+      const targetTrack = tracks.find(t => t.id === targetTrackId);
+      if (!targetTrack) return;
+
+      // 检查目标轨道的碰撞
+      const { hasCollision, collidingItemIds } = checkCollision(
+        targetTrackId,
+        itemId,
+        newStart,
+        draggedItem.duration
+      );
+      
+      setCollisionWarning(hasCollision ? [...collidingItemIds, itemId] : []);
+
+      if (!hasCollision) {
+        // 从源轨道移除项目，添加到目标轨道
+        const newTracks = tracks.map(track => {
+          if (track.id === sourceTrack.id) {
+            return {
+              ...track,
+              items: track.items.filter(i => i.id !== itemId)
+            };
+          }
+          if (track.id === targetTrackId) {
+            return {
+              ...track,
+              items: [...track.items, { ...draggedItem, start: newStart }]
+            };
+          }
+          return track;
+        });
+
+        setTracks(newTracks);
+        onTrackChange?.(newTracks);
+      }
+    } else {
+      // 在同一轨道内移动
+      const { hasCollision, collidingItemIds } = checkCollision(
+        sourceTrack.id,
+        itemId,
+        newStart,
+        draggedItem.duration
+      );
+      
+      setCollisionWarning(hasCollision ? [...collidingItemIds, itemId] : []);
+
+      if (!hasCollision) {
+        const newTracks = tracks.map(t => {
+          if (t.id === sourceTrack.id) {
+            return {
+              ...t,
+              items: t.items.map(i => {
+                if (i.id === itemId) {
+                  return { ...i, start: newStart };
+                }
+                return i;
+              })
+            };
+          }
+          return t;
+        });
+
+        setTracks(newTracks);
+        onTrackChange?.(newTracks);
+      }
     }
   }, [tracks, checkCollision, onTrackChange]);
 
   const handleItemDragEnd = useCallback(() => {
-        setCollisionWarning([]);
+    setCollisionWarning([]);
   }, []);
         
   // 处理轨道项目缩放
