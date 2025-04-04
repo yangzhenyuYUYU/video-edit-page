@@ -59,8 +59,8 @@ export const DEFAULT_TRACK_ITEM_PROPS = {
   duration: 2,
   
   // 位置和尺寸
-  x: 50, // 默认居中，百分比
-  y: 50, // 默认居中，百分比
+  x: 50.0, // 默认水平居中，精确的百分比值
+  y: 50.0, // 默认垂直居中，精确的百分比值
   width: 30, // 宽度百分比
   height: 'auto', // 高度自适应
   rotation: 0, // 旋转角度

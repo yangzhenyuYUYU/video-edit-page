@@ -1,8 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import './TimelineCursor.scss';
 
 const TimelineCursor = ({
   currentTime,
   duration,
+  actualVideoDuration,
   zoom,
   trackHeaderWidth = 36,
   onTimeChange,
@@ -12,12 +14,26 @@ const TimelineCursor = ({
   const isDraggingRef = useRef(false);
   const initialMouseXRef = useRef(0);
   const initialTimeRef = useRef(0);
-
-  // 计算游标位置
+  
+  // 计算游标位置 - 关键函数
   const calculateCursorPosition = (time) => {
+    // 严格限制：先按照视频实际时长限制，确保不超过视频片段
+    const realVideoDuration = actualVideoDuration || duration;
+    const boundedTime = Math.min(Math.max(0, time), realVideoDuration - 0.01);
     const baseWidthPerSecond = 100;
     const scaledWidthPerSecond = baseWidthPerSecond * zoom;
-    return trackHeaderWidth + (time * scaledWidthPerSecond);
+    // 计算像素位置
+    return trackHeaderWidth + (boundedTime * scaledWidthPerSecond);
+  };
+  
+  // 从像素位置反推时间
+  const pixelToTime = (pixelPos) => {
+    const baseWidthPerSecond = 100;
+    const scaledWidthPerSecond = baseWidthPerSecond * zoom;
+    // 计算相对于轨道头部的像素
+    const relativePixel = pixelPos - trackHeaderWidth;
+    // 转换为时间
+    return relativePixel / scaledWidthPerSecond;
   };
 
   // 处理游标拖拽开始
@@ -38,6 +54,12 @@ const TimelineCursor = ({
     if (cursorRef.current) {
       cursorRef.current.classList.add('dragging');
     }
+    
+    // 创建全屏覆盖层以捕获所有鼠标事件
+    const overlay = document.createElement('div');
+    overlay.className = 'cursor-drag-overlay';
+    overlay.id = 'cursor-drag-overlay';
+    document.body.appendChild(overlay);
   };
 
   // 处理游标拖拽
@@ -47,34 +69,44 @@ const TimelineCursor = ({
     const timelineElement = document.querySelector('.timeline');
     if (!timelineElement) return;
     
-    const tracksContainer = timelineElement.querySelector('.tracks-container');
-    const timelineRect = timelineElement.getBoundingClientRect();
-    const scrollLeft = tracksContainer.scrollLeft;
-    const baseWidthPerSecond = 100;
-    const scaledWidthPerSecond = baseWidthPerSecond * zoom;
+    // 获取时间轴的滚动位置与几何信息
+    const rect = timelineElement.getBoundingClientRect();
+    const scrollLeft = timelineElement.scrollLeft;
     
-    // 计算鼠标移动的距离（考虑滚动位置）
-    const mouseDeltaX = e.clientX - initialMouseXRef.current;
-    const timeDelta = (mouseDeltaX + scrollLeft) / scaledWidthPerSecond;
+    // 计算鼠标在时间轴上的相对位置（考虑滚动）
+    const mouseXInTimeline = e.clientX - rect.left + scrollLeft;
     
-    // 计算新的时间点，并确保精确到0.1秒
-    let newTime = Math.round((initialTimeRef.current + timeDelta) * 10) / 10;
+    // 基于鼠标位置计算时间
+    let newTime = pixelToTime(mouseXInTimeline);
+    // 对时间进行舍入处理（0.1秒精度）
+    newTime = Math.round(newTime * 10) / 10;
     
-    // 确保时间在有效范围内
-    newTime = Math.max(0, Math.min(newTime, duration));
+    // 获取实际视频时长
+    const realVideoDuration = actualVideoDuration || duration;
     
-    // 触发时间变化
+    // 关键检查：确保不超过视频实际时长
+    if (newTime >= realVideoDuration) {
+      console.log('游标拖拽超出视频实际时长，限制到最大值');
+      newTime = Math.max(0, realVideoDuration - 0.1);
+    } else if (newTime < 0) {
+      // 限制为最小0
+      newTime = 0;
+    }
+    
+    // 更新时间
     onTimeChange(newTime);
 
     // 自动滚动处理
     const cursorPosition = calculateCursorPosition(newTime);
-    const containerWidth = tracksContainer.clientWidth;
-    const scrollRight = scrollLeft + containerWidth;
+    const visibleWidth = rect.width;
+    const leftEdge = scrollLeft + trackHeaderWidth + 20; // 左边界，加一点缓冲区
+    const rightEdge = scrollLeft + visibleWidth - 20; // 右边界，减一点缓冲区
 
-    if (cursorPosition < scrollLeft + trackHeaderWidth) {
-      tracksContainer.scrollLeft = Math.max(0, cursorPosition - trackHeaderWidth);
-    } else if (cursorPosition > scrollRight) {
-      tracksContainer.scrollLeft = cursorPosition - containerWidth + trackHeaderWidth;
+    // 如果游标接近或超出可视区域，自动滚动
+    if (cursorPosition < leftEdge) {
+      timelineElement.scrollLeft = Math.max(0, cursorPosition - trackHeaderWidth - 20);
+    } else if (cursorPosition > rightEdge) {
+      timelineElement.scrollLeft = cursorPosition - visibleWidth + 40;
     }
   };
 
@@ -89,6 +121,12 @@ const TimelineCursor = ({
     if (cursorRef.current) {
       cursorRef.current.classList.remove('dragging');
     }
+    
+    // 移除覆盖层
+    const overlay = document.getElementById('cursor-drag-overlay');
+    if (overlay) {
+      document.body.removeChild(overlay);
+    }
   };
 
   // 清理事件监听
@@ -96,62 +134,48 @@ const TimelineCursor = ({
     return () => {
       document.removeEventListener('mousemove', handleCursorDrag);
       document.removeEventListener('mouseup', handleCursorDragEnd);
+      
+      // 移除覆盖层
+      const overlay = document.getElementById('cursor-drag-overlay');
+      if (overlay) {
+        document.body.removeChild(overlay);
+      }
     };
   }, []);
 
-  const cursorPosition = calculateCursorPosition(currentTime);
+  // 强制验证游标时间
+  useEffect(() => {
+    const realVideoDuration = actualVideoDuration || duration;
+    if (currentTime >= realVideoDuration) {
+      console.log(`时间超出视频实际范围：当前=${currentTime}，视频时长=${realVideoDuration}，重置到0`);
+      onTimeChange(0);
+    }
+  }, [currentTime, duration, actualVideoDuration, onTimeChange]);
+
+  // 计算最终显示位置 - 严格确保在视频实际时长范围内
+  const realVideoDuration = actualVideoDuration || duration;
+  const validTime = Math.min(Math.max(0, currentTime), realVideoDuration - 0.01);
+  const cursorPosition = calculateCursorPosition(validTime);
 
   return (
     <>
       <div
-        className="cursor-indicator"
+        className="timeline-cursor-indicator"
         style={{ 
           left: `${cursorPosition}px`,
-          position: 'absolute',
-          top: 0,
-          width: '10px',
-          height: '10px',
-          backgroundColor: '#000',
-          borderRadius: '50%',
-          transform: 'translate(-50%, 0)',
-          cursor: 'pointer',
-          zIndex: 10,
-          marginTop: '1px',
-          border: '1.5px solid #000',
-          boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.8)',
-          opacity: 0.85
         }}
         onMouseDown={handleCursorMouseDown}
         ref={cursorRef}
       />
       <div
-        className="cursor-line"
+        className="timeline-cursor-line"
         style={{ 
           left: `${cursorPosition}px`,
-          position: 'absolute',
-          top: '11px',
-          bottom: 0,
-          width: '1px',
-          backgroundColor: '#000',
-          transform: 'translateX(-50%)',
-          cursor: 'col-resize',
-          zIndex: 9,
-          transition: 'width 0.15s ease',
-          ':hover': {
-            width: '2px'
-          }
         }}
         onMouseDown={handleCursorMouseDown}
       />
-      <style>
-        {`
-          .cursor-line:hover {
-            width: 2px !important;
-          }
-        `}
-      </style>
     </>
   );
 };
 
-export default TimelineCursor; 
+export default TimelineCursor;

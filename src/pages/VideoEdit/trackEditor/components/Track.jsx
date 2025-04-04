@@ -1,5 +1,5 @@
 import React from 'react';
-import { VideoCameraOutlined, AudioOutlined, CustomerServiceOutlined, PictureOutlined, FontSizeOutlined } from '@ant-design/icons';
+import { VideoCameraOutlined, AudioOutlined, CustomerServiceOutlined, PictureOutlined, FontSizeOutlined, SoundOutlined } from '@ant-design/icons';
 import TrackItem from './TrackItem';
 import { TRACK_TYPES } from '../../constants';
 
@@ -22,9 +22,11 @@ const Track = ({
       case TRACK_TYPES.VIDEO:
         return <VideoCameraOutlined />;
       case TRACK_TYPES.VOICE:
-        return <AudioOutlined />;
-      case TRACK_TYPES.BACKGROUND:
         return <CustomerServiceOutlined />;
+      case TRACK_TYPES.AUDIO:
+        return <CustomerServiceOutlined style={{ color: '#1890ff' }} />;
+      case TRACK_TYPES.BACKGROUND:
+        return <PictureOutlined style={{ color: '#6f42c1' }} />;
       case TRACK_TYPES.IMAGE:
         return <PictureOutlined />;
       case TRACK_TYPES.TEXT:
@@ -36,7 +38,7 @@ const Track = ({
 
   return (
     <div
-      className={`track ${isCollapsed ? 'collapsed' : ''} type-${track.type}`}
+      className={`track ${isCollapsed ? 'collapsed' : ''} type-${track.type} ${track.type === TRACK_TYPES.BACKGROUND ? 'bg-track' : ''}`}
       data-track-id={track.id}
       data-track-type={track.type}
       onClick={(e) => {

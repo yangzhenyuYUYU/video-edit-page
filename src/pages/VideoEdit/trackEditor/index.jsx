@@ -34,10 +34,31 @@ const TrackEditor = ({
   const timelineRef = useRef(null);
   const playbackRef = useRef(null);
   const dragItemRef = useRef(null);
+  
+  // 获取视频轨道的实际时长（由视频片段决定）
+  const getActualVideoDuration = useCallback(() => {
+    // 查找视频轨道
+    const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
+    if (!videoTrack || videoTrack.items.length === 0) {
+      // 没有视频轨道或没有视频片段，返回默认视频时长
+      return videoDuration;
+    }
+
+    // 计算视频片段的最大结束时间点
+    let maxEndTime = 0;
+    videoTrack.items.forEach(item => {
+      const itemEnd = item.start + item.duration;
+      if (itemEnd > maxEndTime) {
+        maxEndTime = itemEnd;
+      }
+    });
+
+    return maxEndTime > 0 ? maxEndTime : videoDuration;
+  }, [tracks, videoDuration]);
 
   // 获取总时长
   const getDuration = useCallback(() => {
-    if (tracks.length === 0) return 10;
+    if (tracks.length === 0) return videoDuration;
 
     let maxEndTime = 0;
     tracks.forEach(track => {
@@ -49,8 +70,8 @@ const TrackEditor = ({
       });
     });
 
-    // 添加一些额外空间
-    return Math.max(maxEndTime + 5, videoDuration, 10);
+    // 使用视频时长作为基准，确保时间轴长度不小于视频时长
+    return Math.max(maxEndTime, videoDuration);
   }, [tracks, videoDuration]);
 
   // 计算时间轴总宽度
@@ -63,45 +84,93 @@ const TrackEditor = ({
     return Math.max(totalWidth, window.innerWidth); // 确保至少和视口一样宽
   }, [zoom, getDuration]);
 
-  // 播放控制
+  // 停止播放 - 确保此函数先于需要它的函数定义
+  const stopPlayback = useCallback(() => {
+    if (playbackRef.current) {
+      clearInterval(playbackRef.current);
+      playbackRef.current = null;
+    }
+    setIsPlaying(false);
+  }, []);
+
+  // 开始播放
+  const startPlayback = useCallback(() => {
+    setIsPlaying(true);
+    
+    // 清除任何存在的播放定时器
+    if (playbackRef.current) {
+      clearInterval(playbackRef.current);
+    }
+    
+    // 使用定时器推进时间，每10ms检查一次
+    playbackRef.current = setInterval(() => {
+      setCurrentTime(prevTime => {
+        // 使用视频实际时长作为判断依据
+        const actualVideoDur = getActualVideoDuration();
+        const nextTime = prevTime + 0.1;
+        
+        // 检查是否到达了视频末尾
+        if (nextTime >= actualVideoDur) {
+          console.log('播放到达视频实际末尾，停止并重置到起点');
+          stopPlayback();
+          // 重置到起点
+          setTimeout(() => {
+            setCurrentTime(0);
+            onCursorChange?.(0);
+          }, 0);
+          return 0;
+        }
+        
+        return nextTime;
+      });
+    }, 100);
+  }, [getActualVideoDuration, onCursorChange, stopPlayback]);
+
+  // 播放控制 - 现在stopPlayback已经定义，可以安全引用
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
-      if (playbackRef.current) {
-        clearInterval(playbackRef.current);
-        playbackRef.current = null;
-      }
-      setIsPlaying(false);
+      stopPlayback();
     } else {
-      const duration = getDuration();
-      const startTime = currentTime >= duration ? 0 : currentTime;
-      setCurrentTime(startTime);
-      setIsPlaying(true);
-
-      playbackRef.current = setInterval(() => {
-        setCurrentTime(prevTime => {
-          const nextTime = prevTime + 0.1;
-          if (nextTime >= duration) {
-            clearInterval(playbackRef.current);
-            playbackRef.current = null;
-            setIsPlaying(false);
-            return 0;
-          }
-          return nextTime;
+      // 使用视频实际时长作为判断依据
+      const actualVideoDur = getActualVideoDuration();
+      
+      // 如果当前时间已经到了或超过视频实际时长，立即重置到起点
+      if (currentTime >= actualVideoDur) {
+        console.log('播放前检查：currentTime超出视频实际时长，重置到起点');
+        setCurrentTime(0);
+        onCursorChange?.(0);
+        // 等待下一帧再开始播放，确保界面更新
+        requestAnimationFrame(() => {
+          startPlayback();
         });
-      }, 100);
+        return;
+      }
+      
+      startPlayback();
     }
-  }, [isPlaying, currentTime, getDuration]);
+  }, [isPlaying, currentTime, getActualVideoDuration, onCursorChange, stopPlayback, startPlayback]);
 
-  // 处理时间轴点击
+  // 处理时间轴点击 - 确保stopPlayback在这之前定义
   const handleTimelineClick = useCallback((time) => {
     if (isPlaying) {
       clearInterval(playbackRef.current);
       playbackRef.current = null;
-    setIsPlaying(false);
+      setIsPlaying(false);
     }
-    setCurrentTime(time);
-    onCursorChange?.(time);
-  }, [isPlaying, onCursorChange]);
+    
+    // 使用视频实际时长作为判断依据
+    const actualVideoDur = getActualVideoDuration();
+    
+    // 确保时间不超过视频实际时长，超过则重置到0点
+    if (time >= actualVideoDur) {
+      console.log(`点击时间(${time.toFixed(1)}s)超出视频实际时长(${actualVideoDur.toFixed(1)}s)，重置到0点`);
+      setCurrentTime(0);
+      onCursorChange?.(0);
+    } else {
+      setCurrentTime(time);
+      onCursorChange?.(time);
+    }
+  }, [isPlaying, onCursorChange, getActualVideoDuration]);
 
   // 处理缩放
   const handleZoomIn = useCallback(() => {
@@ -157,6 +226,12 @@ const TrackEditor = ({
     if (targetTrackId && targetTrackId !== sourceTrack.id) {
       const targetTrack = tracks.find(t => t.id === targetTrackId);
       if (!targetTrack) return;
+      
+      // 检查目标轨道类型是否与源轨道类型相同
+      if (targetTrack.type !== sourceTrack.type) {
+        console.log('不能跨不同类型的轨道拖拽', sourceTrack.type, targetTrack.type);
+        return; // 类型不同，不允许拖拽
+      }
 
       // 检查目标轨道的碰撞
       const { hasCollision, collidingItemIds } = checkCollision(
@@ -180,7 +255,11 @@ const TrackEditor = ({
           if (track.id === targetTrackId) {
             return {
               ...track,
-              items: [...track.items, { ...draggedItem, start: newStart }]
+              items: [...track.items, { 
+                ...draggedItem, 
+                start: newStart,
+                trackId: targetTrackId // 确保更新项目的轨道ID
+              }]
             };
           }
           return track;
@@ -250,8 +329,13 @@ const TrackEditor = ({
             ...t,
             items: t.items.map(i => {
               if (i.id === itemId) {
-                return { ...i, start: newStart, duration: newDuration };
-                }
+                return { 
+                  ...i, 
+                  start: newStart, 
+                  duration: newDuration,
+                  trackId: track.id 
+                };
+              }
               return i;
               })
             };
@@ -276,18 +360,47 @@ const TrackEditor = ({
 
   // 处理项目选择
   const handleItemSelect = useCallback((itemId) => {
+    // 如果传入的是一个对象（来自TrackItem组件），则使用itemId属性
+    const id = typeof itemId === 'object' ? itemId.id : itemId;
+    
     const track = tracks.find(track => 
-      track.items.some(item => item.id === itemId)
+      track.items.some(item => item.id === id)
     );
     
-    if (!track) return;
+    if (!track) {
+      console.log('未找到对应的轨道');
+      return;
+    }
     
-    const item = track.items.find(item => item.id === itemId);
-    if (!item) return;
+    const item = track.items.find(item => item.id === id);
+    if (!item) {
+      console.log('未找到对应的轨道项目');
+      return;
+    }
 
-    const itemWithTrackId = { ...item, trackId: track.id };
-      setSelectedItem(itemWithTrackId);
-      onItemSelect?.(itemWithTrackId);
+    console.log('找到选中项目:', item, '所在轨道:', track.id);
+    
+    // 更新选中状态
+    const itemWithTrackInfo = { 
+      ...item, 
+      trackId: track.id,
+      type: track.type
+    };
+    setSelectedItem(itemWithTrackInfo);
+    
+    // 通知父组件
+    onItemSelect?.(itemWithTrackInfo);
+    
+    // 触发轨道项目选择事件，通知预览区域
+    const selectEvent = new CustomEvent('track-item-select', {
+      detail: {
+        itemId: id,
+        trackId: track.id,
+        type: track.type,
+        item: itemWithTrackInfo // 添加完整的项目数据
+      }
+    });
+    document.dispatchEvent(selectEvent);
   }, [tracks, onItemSelect]);
 
   // 处理删除
@@ -324,6 +437,132 @@ const TrackEditor = ({
       }
     };
   }, []);
+
+  // 监听预览区域元素选择事件
+  useEffect(() => {
+    const handlePreviewElementSelect = (event) => {
+      const { detail } = event;
+      if (!detail) return;
+      
+      // 查找轨道项目并高亮
+      const trackWithItem = tracks.find(track => 
+        track.id === detail.trackId && 
+        track.items.some(item => item.id === detail.itemId)
+      );
+      
+      if (trackWithItem) {
+        const item = trackWithItem.items.find(item => item.id === detail.itemId);
+        if (item) {
+          // 设置选中状态
+          setSelectedItem({
+            id: detail.itemId,
+            trackId: detail.trackId,
+            type: detail.type || trackWithItem.type
+          });
+          
+          // 通知父组件有元素被选中
+          onItemSelect?.({
+            id: detail.itemId,
+            trackId: detail.trackId,
+            type: detail.type || trackWithItem.type
+          });
+          
+          // 滚动到该项目位置
+          scrollToItem(detail.trackId, detail.itemId);
+          
+          // 高亮显示轨道项目
+          const trackItem = document.querySelector(`[data-item-id="${detail.itemId}"]`);
+          if (trackItem) {
+            // 移除其他项目的选中状态
+            document.querySelectorAll('.track-item.selected').forEach(el => {
+              if (el.getAttribute('data-item-id') !== detail.itemId) {
+                el.classList.remove('selected');
+              }
+            });
+            
+            // 添加选中状态
+            trackItem.classList.add('selected');
+          }
+        }
+      }
+    };
+
+    const handleTrackItemSelect = (event) => {
+      const { detail } = event;
+      if (!detail) return;
+      
+      // 查找轨道项目并高亮
+      const trackWithItem = tracks.find(track => 
+        track.id === detail.trackId && 
+        track.items.some(item => item.id === detail.itemId)
+      );
+      
+      if (trackWithItem) {
+        const item = trackWithItem.items.find(item => item.id === detail.itemId);
+        if (item) {
+          // 设置选中状态
+          setSelectedItem({
+            id: detail.itemId,
+            trackId: detail.trackId,
+            type: detail.type || trackWithItem.type
+          });
+          
+          // 通知父组件有元素被选中
+          onItemSelect?.({
+            id: detail.itemId,
+            trackId: detail.trackId,
+            type: detail.type || trackWithItem.type
+          });
+          
+          // 滚动到该项目位置
+          scrollToItem(detail.trackId, detail.itemId);
+          
+          // 高亮显示轨道项目
+          const trackItem = document.querySelector(`[data-item-id="${detail.itemId}"]`);
+          if (trackItem) {
+            // 移除其他项目的选中状态
+            document.querySelectorAll('.track-item.selected').forEach(el => {
+              if (el.getAttribute('data-item-id') !== detail.itemId) {
+                el.classList.remove('selected');
+              }
+            });
+            
+            // 添加选中状态
+            trackItem.classList.add('selected');
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('preview-element-select', handlePreviewElementSelect);
+    document.addEventListener('track-item-select', handleTrackItemSelect);
+    
+    return () => {
+      document.removeEventListener('preview-element-select', handlePreviewElementSelect);
+      document.removeEventListener('track-item-select', handleTrackItemSelect);
+    };
+  }, [tracks, onItemSelect]);
+  
+  // 滚动到指定项目位置
+  const scrollToItem = (trackId, itemId) => {
+    const trackElem = document.querySelector(`[data-track-id="${trackId}"]`);
+    const itemElem = document.querySelector(`[data-item-id="${itemId}"]`);
+    
+    if (trackElem && itemElem && timelineRef.current) {
+      const timelineRect = timelineRef.current.getBoundingClientRect();
+      const itemRect = itemElem.getBoundingClientRect();
+      
+      // 计算项目在时间轴中的位置
+      const itemLeft = itemRect.left - timelineRect.left + timelineRef.current.scrollLeft;
+      const itemRight = itemLeft + itemRect.width;
+      
+      // 确保项目在可视区域内
+      if (itemLeft < timelineRef.current.scrollLeft || 
+          itemRight > timelineRef.current.scrollLeft + timelineRect.width) {
+        timelineRef.current.scrollLeft = itemLeft - timelineRect.width / 4;
+      }
+    }
+  };
 
   // 渲染轨道
   const renderTracks = useMemo(() => {
@@ -391,6 +630,7 @@ const TrackEditor = ({
           <button
             className="control-button"
             onClick={handleDelete}
+            disabled={!selectedItem}
             title="删除所选项目"
           >
             <DeleteOutlined />
@@ -467,18 +707,38 @@ const TrackEditor = ({
         >
           <TimelineRuler
             duration={getDuration()}
+            actualVideoDuration={getActualVideoDuration()}
             zoom={zoom}
             width={calculateTimelineWidth()}
             onTimelineClick={handleTimelineClick}
           />
 
           <TimelineCursor
-            currentTime={currentTime}
+            currentTime={Math.min(currentTime, getDuration() - 0.01)}
             duration={getDuration()}
+            actualVideoDuration={getActualVideoDuration()}
             zoom={zoom}
             onTimeChange={(time) => {
-              setCurrentTime(time);
-              onCursorChange?.(time);
+              // 获取当前视频实际时长
+              const actualVideoDur = getActualVideoDuration();
+              
+              // 对时间进行有效性和边界检查
+              if (time >= actualVideoDur || time < 0) {
+                console.log(`游标位置无效，超出视频实际时长(${actualVideoDur.toFixed(1)}s)或小于0，重置到起点`);
+                // 立即停止播放
+                stopPlayback();
+                
+                // 重置到起点
+                requestAnimationFrame(() => {
+                  setCurrentTime(0);
+                  onCursorChange?.(0);
+                });
+              } else {
+                // 确保在有效范围内
+                const validTime = Math.min(time, actualVideoDur - 0.01);
+                setCurrentTime(validTime);
+                onCursorChange?.(validTime);
+              }
             }}
             isPlaying={isPlaying}
           />

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { PlayCircleOutlined, CustomerServiceOutlined, AudioOutlined, FontSizeOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, CustomerServiceOutlined, AudioOutlined, FontSizeOutlined, SoundOutlined } from '@ant-design/icons';
 import { TRACK_TYPES } from '../../constants';
 
 const TrackItem = ({
@@ -117,10 +117,20 @@ const TrackItem = ({
     const offsetX = mouseX - dragRef.current.mouseOffsetX - trackHeaderWidth;
     const newStartTime = snapToGrid(pixelsToTime(offsetX));
     
-    // 确保不会超出时间轴范围
-    const clampedStart = Math.max(0, Math.min(newStartTime, duration - item.duration));
+    // 确保元素不会超出视频时长
+    const maxStart = Math.max(0, duration - item.duration);
     
-    onDrag?.(item.id, clampedStart, targetTrackId);
+    // 如果尝试拖到超出视频时长的位置，直接固定在视频时长边界
+    const clampedStart = Math.max(0, Math.min(newStartTime, maxStart));
+    
+    // 如果元素结束时间超出视频时长，则调整位置确保不超出
+    if (clampedStart + item.duration > duration) {
+      // 确保元素完全在视频时长范围内
+      const adjustedStart = Math.max(0, duration - item.duration);
+      onDrag?.(item.id, adjustedStart, targetTrackId);
+    } else {
+      onDrag?.(item.id, clampedStart, targetTrackId);
+    }
   };
 
   // 处理拖拽结束
@@ -178,12 +188,20 @@ const TrackItem = ({
     
     if (resizeRef.current.direction === 'left') {
       const potentialNewStart = snapToGrid(resizeRef.current.originalStart + deltaTime);
+      // 确保不会调整到小于0的位置
       const maxStart = resizeRef.current.originalStart + resizeRef.current.originalDuration - 0.1;
       newStart = parseFloat(Math.max(0, Math.min(potentialNewStart, maxStart)).toFixed(1));
       newDuration = parseFloat((resizeRef.current.originalDuration - (newStart - resizeRef.current.originalStart)).toFixed(1));
     } else {
       const potentialNewDuration = snapToGrid(resizeRef.current.originalDuration + deltaTime);
-      newDuration = parseFloat(Math.max(0.1, Math.min(potentialNewDuration, duration - newStart)).toFixed(1));
+      // 确保元素不会延伸超过视频总时长
+      const maxDuration = duration - newStart;
+      newDuration = parseFloat(Math.max(0.1, Math.min(potentialNewDuration, maxDuration)).toFixed(1));
+      
+      // 额外检查：确保结束位置不会超过视频时长
+      if (newStart + newDuration > duration) {
+        newDuration = parseFloat((duration - newStart).toFixed(1));
+      }
     }
     
     onResize?.(item.id, newStart, newDuration);
@@ -211,26 +229,58 @@ const TrackItem = ({
     switch (track.type) {
       case TRACK_TYPES.VIDEO:
       case TRACK_TYPES.IMAGE:
+      case TRACK_TYPES.BACKGROUND:
         return (
-          <div className="media-container">
+          <div className={`media-container ${track.type === TRACK_TYPES.BACKGROUND ? 'bg-media-container' : ''}`}>
             <div 
-              className="video-frames-container"
+              className={`video-frames-container ${track.type === TRACK_TYPES.BACKGROUND ? 'bg-frames-container' : ''}`}
               style={{
                 backgroundImage: `url(${item.cover || item.src || 'https://picsum.photos/300/200'})`,
                 backgroundSize: 'auto 100%',
                 backgroundRepeat: 'repeat-x',
                 backgroundPosition: 'center',
+                ...(track.type === TRACK_TYPES.BACKGROUND ? {
+                  borderLeft: '3px solid #6f42c1', // 背景轨道项目添加紫色边框标识
+                  opacity: 0.85 // 略微降低背景不透明度以区分
+                } : {})
               }}
-            />
+            >
+              {track.type === TRACK_TYPES.BACKGROUND && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '2px', 
+                  left: '4px', 
+                  padding: '1px 4px',
+                  fontSize: '9px',
+                  color: '#6f42c1',
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  borderRadius: '2px'
+                }}>
+                  背景
+                </div>
+              )}
+            </div>
           </div>
         );
       
-      case TRACK_TYPES.BACKGROUND:
       case TRACK_TYPES.VOICE:
         return (
           <div className="media-container audio-container">
             <div className="audio-icon">
-              {track.type === TRACK_TYPES.BACKGROUND ? <CustomerServiceOutlined /> : <AudioOutlined />}
+              <CustomerServiceOutlined />
+            </div>
+            <div className="audio-info">
+              <div className="audio-name">{item.content}</div>
+              <div className="audio-duration">{item.duration.toFixed(1)}s</div>
+            </div>
+          </div>
+        );
+
+      case TRACK_TYPES.AUDIO:
+        return (
+          <div className="media-container audio-container">
+            <div className="audio-icon">
+              <CustomerServiceOutlined />
             </div>
             <div className="audio-info">
               <div className="audio-name">{item.content}</div>
@@ -261,26 +311,28 @@ const TrackItem = ({
   // 处理点击选择
   const handleSelect = (e) => {
     e.stopPropagation();
-    onSelect?.(item.id);
-
-    // 触发预览区域的选中事件
-    const selectEvent = new CustomEvent('track-item-select', {
-      detail: {
-        itemId: item.id,
-        type: track.type
-      }
-    });
-    window.dispatchEvent(selectEvent);
+    
+    console.log('轨道项目被点击选择:', item);
+    
+    // 传递完整的item对象，包含trackId和type信息
+    const enhancedItem = {
+      ...item,
+      trackId: track.id,
+      type: track.type
+    };
+    onSelect?.(enhancedItem);
   };
 
   return (
     <div
       ref={itemRef}
-      className={`track-item type-${track.type} ${isSelected ? 'selected' : ''} ${dragRef.current.isDragging ? 'dragging' : ''} ${resizeRef.current.isResizing ? 'resizing' : ''}`}
+      className={`track-item ${isSelected ? 'selected' : ''} ${item.isHuman ? 'human' : ''} type-${track.type} ${dragRef.current.isDragging ? 'dragging' : ''} ${resizeRef.current.isResizing ? 'resizing' : ''} ${track.type === TRACK_TYPES.BACKGROUND ? 'bg-track-item' : ''}`}
       style={{
         left: `${timeToPixels(item.start)}px`,
-        width: `${timeToPixels(item.duration)}px`
+        width: `${timeToPixels(item.duration)}px`,
+        opacity: isCollapsed ? 0.6 : 1
       }}
+      data-item-id={item.id}
       onClick={handleSelect}
       onMouseDown={handleDragStart}
     >

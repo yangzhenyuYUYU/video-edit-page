@@ -1,38 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import {
-  AppstoreFilled,
-  UserOutlined,
-  CustomerServiceFilled,
-  PictureFilled,
-  FontSizeOutlined,
-  BoxPlotFilled,
-  FolderFilled,
-  RightOutlined,
-  LeftOutlined,
-  ExportOutlined,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
-  UndoOutlined,
-  RedoOutlined
-} from '@ant-design/icons';
-import { Button, message, Switch, Slider, Input } from 'antd';
+import { message } from 'antd';
 import './index.scss';
-import logo from '../../assets/images/logo.png';
 import TrackEditor from './trackEditor';
-import ExportDialog from './components/ExportDialog';
 import { TRACK_TYPES } from './constants';
-import { avatars, avatarsByCategory } from './data/avatars';
-import { templates, templatesByCategory } from './data/templates';
-import { music, musicByCategory, formatDuration } from './data/music';
-import { backgrounds, backgroundsByCategory } from './data/backgrounds';
-import { bubblesByCategory } from './data/bubbles';
-import VideoPreview from './components/VideoPreview';
-import { elements, elementsByCategory } from './data/elements';
+import VideoPreview from './VideoPreview';
+import MaterialsPanel from './materialsPanel';
+import EditPanel from './editPanel';
 
 const VideoEdit = () => {
-  const [activeNav, setActiveNav] = useState('template');
-  const [activeMyMaterialTab, setActiveMyMaterialTab] = useState('template');
-  
   // Track-related state
   const [tracks, setTracks] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
@@ -52,9 +27,6 @@ const VideoEdit = () => {
   
   const timelineResizeRef = useRef(null);
   const contentRef = useRef(null);
-  
-  // 导出对话框状态
-  const [exportDialogVisible, setExportDialogVisible] = useState(false);
 
   // 计算视频总时长
   const calculateTotalDuration = useCallback(() => {
@@ -77,8 +49,6 @@ const VideoEdit = () => {
 
   // 处理轨道变化
   const handleTrackChange = (newTracks) => {
-    console.log('handleTrackChange called with:', newTracks);
-    
     // 过滤轨道：只保留有内容的轨道
     const processedTracks = newTracks.filter(track => {
       // 如果是视频轨道且有内容，保留
@@ -89,15 +59,11 @@ const VideoEdit = () => {
       return track.items && track.items.length > 0;
     });
     
-    console.log('Processed tracks for update:', processedTracks);
-    
     // 更新当前显示的轨道状态 - 使用深拷贝确保数据独立
     setTracks([...processedTracks]);
     
     // 如果有选中的视频区域，更新区域轨道映射
     if (selectedVideoId) {
-      console.log(`Updating tracks for video area: ${selectedVideoId}`);
-      
       setAreaTrackMap(prevMap => {
         const newMap = { ...prevMap };
         newMap[selectedVideoId] = JSON.parse(JSON.stringify(processedTracks));
@@ -113,8 +79,6 @@ const VideoEdit = () => {
 
   // 处理选中轨道项目
   const handleItemSelect = (item) => {
-    console.log('handleItemSelect called with:', item);
-    
     if (!item) {
       console.log('No item provided to handleItemSelect');
       setSelectedTrackItem(null);
@@ -138,8 +102,20 @@ const VideoEdit = () => {
       return;
     }
 
-    // Otherwise we're selecting an item
-    console.log('Item selected:', item);
+    // 如果选择了轨道中的元素，更新编辑状态
+    if (item.id) {
+      // 查找轨道
+      const trackIndex = tracks.findIndex(track => track.id === item.trackId);
+      if (trackIndex !== -1) {
+        // 查找元素
+        const trackItem = tracks[trackIndex].items.find(i => i.id === item.id);
+        if (trackItem) {
+          // 更新编辑状态
+          updateElementEditingState(trackItem);
+        }
+      }
+    }
+    
     setSelectedTrackItem({
       trackId: item.trackId,
       type: item.type || getItemTypeFromTrackId(item.trackId),
@@ -167,10 +143,8 @@ const VideoEdit = () => {
 
   // 处理素材点击
   const handleMaterialClick = (type, content) => {
-    console.log('handleMaterialClick called with:', { type, content });
-
     // 如果是视频类型，允许直接添加（因为这会创建新的区域片段）
-    if (type === 'video' || type === 'person') {
+    if (type === 'video') {
       // 获取对应类型
       const trackType = TRACK_TYPES.VIDEO;
       
@@ -183,8 +157,8 @@ const VideoEdit = () => {
       };
       
       // 根据类型设置src
-      if (typeof content === 'object' && content.preview_video) {
-        newItem.src = content.preview_video;
+      if (typeof content === 'object' && content.url) {
+        newItem.src = content.url;
         newItem.name = content.name;
         newItem.duration = content.duration || 10;
         newItem.templateId = content.id;
@@ -193,16 +167,6 @@ const VideoEdit = () => {
         newItem.src = 'http://kl-digital.oss-cn-shanghai.aliyuncs.com/synthesis/42/P13525239778T1741857143139RPYUV.mp4';
         newItem.cover = 'https://picsum.photos/300/200?random=' + Date.now();
       }
-
-      // 如果是人物视频
-      if (type === 'person' && typeof content === 'object') {
-        newItem.src = content.src || content.preview_video || 'https://res.chanjing.cc/chanjing/dp/output/2024-12-03/1733251200000-avatar1.png';
-        newItem.avatarId = content.id;
-        newItem.avatarName = content.name;
-        newItem.isHuman = true;
-        newItem.cover = content.cover || content.src;
-      }
-
       // 获取当前视频轨道
       const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
 
@@ -267,6 +231,98 @@ const VideoEdit = () => {
       return;
     }
 
+    // 如果是背景类型，特殊处理
+    if (type === 'background') {
+      console.log('添加背景素材:', content);
+      
+      // 获取对应类型
+      const trackType = TRACK_TYPES.BACKGROUND;
+      
+      // 如果轨道是收起状态，展开它
+      if (isTimelineCollapsed) {
+        setIsTimelineCollapsed(false);
+        // 调整时间轴高度
+        setTimelineHeight(200);
+      }
+
+      // 获取视频轨道和视频时长
+      const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
+      const videoItem = videoTrack?.items[0];
+      const videoDuration = videoItem?.duration || 10;
+      
+      // 创建新的背景素材项
+      const newItem = {
+        id: `background-${Date.now()}`,
+        start: 0,
+        duration: videoDuration, // 使用视频时长
+        content: typeof content === 'string' ? content : content.name || '背景',
+        isBackground: true, // 标记为背景
+        width: content.width || 1080,
+        height: content.height || 1920,
+        zIndex: -1 // 确保背景在最底层
+      };
+      
+      // 根据类型设置src
+      if (typeof content === 'object' && content.url) {
+        newItem.src = content.url;
+        newItem.cover = content.cover || content.url;
+      }
+      
+      // 检查是否已有背景轨道
+      const backgroundTrack = tracks.find(track => track.type === trackType);
+      let newTracks = [...tracks];
+      
+      if (backgroundTrack) {
+        // 更新现有背景轨道 - 替换为新的背景（一次只能有一个背景）
+        const updatedTrack = {
+          ...backgroundTrack,
+          items: [newItem] // 替换现有背景
+        };
+        
+        newTracks = tracks.map(track => 
+          track.id === backgroundTrack.id ? updatedTrack : track
+        );
+      } else {
+        // 创建新的背景轨道
+        const newBackgroundTrack = {
+          id: `background-track-${Date.now()}`,
+          type: trackType,
+          name: '背景轨道',
+          items: [newItem],
+          isBackground: true
+        };
+        
+        // 将背景轨道添加到最底部
+        newTracks.push(newBackgroundTrack);
+      }
+      
+      // 更新状态
+      setTracks(newTracks);
+      handleTrackChange(newTracks);
+      
+      // 选中添加的背景
+      setSelectedTrackItem({
+        trackId: backgroundTrack ? backgroundTrack.id : `background-track-${Date.now()}`,
+        type: trackType,
+        itemId: newItem.id,
+        isTrack: false
+      });
+
+      // 触发轨道选中事件
+      const trackSelectEvent = new CustomEvent('track-item-select', {
+        detail: {
+          itemId: newItem.id,
+          trackId: backgroundTrack ? backgroundTrack.id : `background-track-${Date.now()}`,
+          type: trackType,
+          item: newItem
+        }
+      });
+      document.dispatchEvent(trackSelectEvent);
+      
+      message.success('成功添加背景素材');
+      return;
+    }
+
     // 对于其他类型的素材，检查是否已选择区域
     // if (!selectedVideoId) {
     //   message.warning('请先选择一个区域片段');
@@ -282,7 +338,7 @@ const VideoEdit = () => {
 
     // 获取对应类型
     const trackType = type === 'image' ? TRACK_TYPES.IMAGE :
-                    type === 'audio' ? TRACK_TYPES.BACKGROUND :
+                    type === 'audio' ? TRACK_TYPES.AUDIO :
                     type === 'text' ? TRACK_TYPES.TEXT : null;
     
     if (!trackType) {
@@ -294,7 +350,7 @@ const VideoEdit = () => {
     const newItem = {
       id: `${type}-${Date.now()}`,
       start: 0,
-      duration: type === 'video' || type === 'person' ? 10 : 5, // 视频和数字人10秒，其他5秒
+      duration: type === 'video' ? 10 : 5, // 视频10秒，其他5秒
       content: typeof content === 'string' ? content : content.name || '未命名内容',
     };
     
@@ -309,11 +365,11 @@ const VideoEdit = () => {
           paddingVertical: content.paddingVertical,
           paddingHorizontal: content.paddingHorizontal,
           struct: content.struct,
-          preview_url: content.preview_url,
+          url: content.url,
           width: content.width,
           height: content.height
         };
-        newItem.content = content.name;
+        newItem.content = content.struct.textInfo.content;
       }
     } else if (type === 'image') {
       if (typeof content === 'object') {
@@ -324,6 +380,13 @@ const VideoEdit = () => {
       if (typeof content === 'object' && content.url) {
         newItem.src = content.url;
         newItem.duration = content.duration || 5;
+        
+        // 如果有视频轨道，则使用视频时长
+        const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
+        if (videoTrack && videoTrack.items.length > 0) {
+          const videoItem = videoTrack.items[0];
+          newItem.duration = videoItem.duration || 10;
+        }
       }
     }
 
@@ -333,8 +396,8 @@ const VideoEdit = () => {
       type: trackType,
       name: type === 'video' ? '视频轨道' : 
             type === 'image' ? '图片轨道' : 
-            type === 'audio' ? '背景音乐' :
-            type === 'person' ? '数字人轨道' : '未知轨道',
+            type === 'audio' ? '音频轨道' : 
+            type === 'text' ? '文本轨道' : '未知轨道',
       items: [newItem]
     };
 
@@ -343,6 +406,25 @@ const VideoEdit = () => {
       // 保留所有现有轨道，新轨道添加到顶部
       const updatedTracks = [newTrack, ...prevTracks];
       handleTrackChange(updatedTracks);
+      
+      // 构建新元素对象
+      const newElementItem = {
+        ...newItem,
+        trackId: newTrack.id,
+        type: trackType,
+        x: 50,
+        y: 50,
+        width: trackType === TRACK_TYPES.TEXT ? 30 : 20,
+        height: 'auto',
+        rotation: 0,
+        scale: 1,
+        opacity: 1,
+        isNew: true
+      };
+      
+      // 直接调用 handleItemSelect
+      handleItemSelect(newElementItem);
+      
       return updatedTracks;
     });
     
@@ -353,14 +435,50 @@ const VideoEdit = () => {
       itemId: newItem.id,
       isTrack: false
     });
-    
-    message.success(`成功添加${type === 'video' ? '视频' : type === 'image' ? '背景图片' : type === 'person' ? '数字人' : type === 'audio' ? '音频' : '文本'}素材`);
-  };
 
-  // 添加 useEffect 来监控 selectedTrackItem 的变化
-  useEffect(() => {
-    console.log('selectedTrackItem changed:', selectedTrackItem);
-  }, [selectedTrackItem]);
+    // 触发轨道选中事件
+    const trackSelectEvent = new CustomEvent('track-item-select', {
+      detail: {
+        itemId: newItem.id,
+        trackId: newTrack.id,
+        type: trackType,
+        item: newItem
+      }
+    });
+    document.dispatchEvent(trackSelectEvent);
+
+    // 触发预览区域选中事件
+    const previewSelectEvent = new CustomEvent('preview-element-select', {
+      detail: {
+        itemId: newItem.id,
+        trackId: newTrack.id,
+        type: trackType,
+        item: newItem
+      }
+    });
+    document.dispatchEvent(previewSelectEvent);
+    
+    // 确保更新编辑状态
+    updateElementEditingState({
+      ...newItem,
+      type: trackType
+    });
+    
+    // 延迟一下确保 DOM 已更新
+    setTimeout(() => {
+      const element = document.getElementById(`element-${newItem.id}`);
+      if (element) {
+        element.classList.add('selected');
+      }
+      
+      const trackElement = document.querySelector(`[data-track-item-id="${newItem.id}"]`);
+      if (trackElement) {
+        trackElement.classList.add('selected');
+      }
+    }, 0);
+    
+    message.success(`成功添加${type === 'video' ? '视频' : type === 'image' ? '贴图' : type === 'audio' ? '音频' : '文本'}素材`);
+  };
 
   // 更新时间轴拖拽处理逻辑
   const handleTimelineResize = useCallback((e) => {
@@ -401,103 +519,6 @@ const VideoEdit = () => {
       window.removeEventListener('mouseup', handleTimelineResizeEnd);
     };
   }, [isDraggingTimeline, handleTimelineResize, handleTimelineResizeEnd]);
-
-  // 根据不同素材类型定义分类
-  const materialCategories = {
-    template: [
-      { key: 'all', label: '全部' },
-      { key: 'knowledge', label: '知识口播' },
-      { key: 'emotion', label: '情感口播' },
-      { key: 'trending', label: '节目热点' },
-      { key: 'law', label: '法律科普' },
-      { key: 'health', label: '养生保健' },
-      { key: 'sales', label: '实货营销' },
-      { key: 'education', label: '教育培训' },
-      { key: 'ad', label: '广告宣传' },
-      { key: 'news', label: '新闻资讯' },
-      { key: 'material', label: '素材配音' },
-      { key: 'digital', label: '数字人推广' }
-    ],
-    avatar: [
-      { key: 'all', label: '全部' },
-      { key: 'business', label: '商务精英' },
-      { key: 'intellectual', label: '知性' },
-      { key: 'traditional', label: '国风' },
-      { key: 'casual', label: '休闲' },
-      { key: 'male', label: '男性形象' },
-      { key: 'female', label: '女性形象' }
-    ],
-    audio: [
-      { key: 'all', label: '全部' },
-      { key: 'popular', label: '热门音乐' },
-      { key: 'sales', label: '带货音乐' },
-      { key: 'emotion', label: '情感音乐' },
-      { key: 'classical', label: '古典清幽' },
-      { key: 'festive', label: '节日喜庆' }
-    ],
-    background: [
-      { key: 'all', label: '全部' },
-      { key: '中式', label: '中式' },
-      { key: '户外', label: '户外' },
-      { key: '生活', label: '生活' },
-      { key: '抽象', label: '抽象' },
-      { key: '科技', label: '科技' }
-    ],
-    text: [
-      { key: 'all', label: '全部' },
-      { key: 'title', label: '标题模板' },
-      { key: 'subtitle', label: '字幕模板' },
-      { key: 'caption', label: '说明文字' },
-      { key: 'end', label: '片尾字幕' }
-    ],
-    element: [
-      { key: 'all', label: '全部' },
-      { key: 'shape', label: '形状' },
-      { key: 'plant', label: '植物' },
-      { key: 'border', label: '边框' },
-      { key: 'furniture', label: '桌椅' },
-      { key: 'butterflyLogo', label: '蝴蝶logo' },
-      { key: 'mask', label: '遮挡' },
-      { key: 'festival', label: '节日' },
-      { key: 'guide', label: '指引' },
-      { key: 'social', label: '点赞关注' }
-    ]
-  };
-
-  const [activeCategory, setActiveCategory] = useState('all');
-
-  const navItems = [
-    { key: 'template', label: '模板', icon: <AppstoreFilled /> },
-    { key: 'avatar', label: '人像', icon: <UserOutlined /> },
-    { key: 'audio', label: '音频', icon: <CustomerServiceFilled /> },
-    { key: 'background', label: '背景', icon: <PictureFilled /> },
-    { key: 'text', label: '文本', icon: <FontSizeOutlined /> },
-    { key: 'element', label: '元素', icon: <BoxPlotFilled /> },
-    { key: 'material', label: '我的素材', icon: <FolderFilled /> }
-  ];
-
-  const handleBack = () => {
-    window.history.back();
-  };
-  
-  // 处理导出对话框
-  const handleExportClick = () => {
-    if (!tracks || tracks.length === 0) {
-      message.warning('请先添加素材再导出视频');
-      return;
-    }
-    setExportDialogVisible(true);
-  };
-  
-  const handleExportClose = () => {
-    setExportDialogVisible(false);
-  };
-  
-  const handleExportSubmit = (exportData) => {
-    console.log('导出视频:', exportData);
-    message.success('视频正在导出中，完成后将通知您');
-    // TODO: 调用实际的导出 API
-  };
 
   // 处理轨道收起展开
   const handleToggleTracks = () => {
@@ -779,7 +800,7 @@ const VideoEdit = () => {
       setSelectedTrackItem(null);
     }
     
-    message.success('项目已删除');
+    message.success('已删除素材');
   };
 
   // 播放/暂停音频
@@ -813,7 +834,7 @@ const VideoEdit = () => {
   // Get the active video source for the VideoPreview component
   const getActiveVideoSrc = () => {
     // Find the first video track
-    const videoTracks = tracks.filter(track => track.type === 'video' || track.type === 'person');
+    const videoTracks = tracks.filter(track => track.type === 'video');
     if (videoTracks.length === 0) return null;
     
     // Find active video item at current time
@@ -832,412 +853,197 @@ const VideoEdit = () => {
   };
 
   // 在 VideoEdit 组件内添加新的状态
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(true);
   const [videoVolume, setVideoVolume] = useState(100);
   const [bgmVolume, setBgmVolume] = useState(80);
+  const [elementOpacity, setElementOpacity] = useState(100);
+  const [elementRotation, setElementRotation] = useState(0);
+  const [elementTextContent, setElementTextContent] = useState('');
+  const [elementTextColor, setElementTextColor] = useState('#000000');
+  const [elementTextSize, setElementTextSize] = useState(16);
+
+  // 更新元素编辑状态
+  const updateElementEditingState = (item) => {
+    if (!item) return;
+    
+    // 设置透明度
+    setElementOpacity(item.opacity ? item.opacity * 100 : 100);
+    
+    // 设置旋转角度
+    setElementRotation(item.rotation || 0);
+    
+    // 文本内容相关
+    if (item.type === TRACK_TYPES.TEXT) {
+      setElementTextContent(item.content || '');
+      setElementTextColor(item.textColor || item.textStyle?.color || '#FFFFFF');
+      setElementTextSize(parseInt(item.textSize || item.textStyle?.fontSize || 24));
+    }
+  };
+
+  // 处理元素属性变更
+  const handleElementPropertyChange = (property, value) => {
+    if (!selectedTrackItem || !selectedTrackItem.itemId) return;
+    
+    // 查找所选元素
+    const trackIndex = tracks.findIndex(track => track.id === selectedTrackItem.trackId);
+    if (trackIndex === -1) return;
+    
+    const itemIndex = tracks[trackIndex].items.findIndex(item => item.id === selectedTrackItem.itemId);
+    if (itemIndex === -1) return;
+    
+    // 创建新的轨道数据
+    const newTracks = [...tracks];
+    const updatedItem = { ...newTracks[trackIndex].items[itemIndex] };
+    
+    // 确保textStyle对象存在
+    if (!updatedItem.textStyle) {
+      updatedItem.textStyle = {};
+    }
+    
+    // 根据属性类型更新元素
+    switch (property) {
+      case 'opacity':
+        // 直接使用传入的 opacity 值，因为在 EditPanel 中已经做了转换
+        updatedItem.opacity = value;
+        break;
+      case 'rotation':
+        updatedItem.rotation = value;
+        break;
+      case 'content':
+        updatedItem.content = value;
+        break;
+      case 'textStyle':
+        // 直接更新整个textStyle对象
+        updatedItem.textStyle = {
+          ...updatedItem.textStyle,
+          ...value
+        };
+        break;
+      default:
+        return; // 不更新未知属性
+    }
+    
+    // 更新轨道中的元素
+    newTracks[trackIndex].items[itemIndex] = updatedItem;
+    
+    // 更新轨道数据
+    handleTrackChange(newTracks);
+  };
+  
+  // 处理预览区域元素变更
+  const handlePreviewItemChange = (updatedItem) => {
+    if (!updatedItem || !updatedItem.id || !updatedItem.trackId) return;
+    
+    // 查找所选元素
+    const trackIndex = tracks.findIndex(track => track.id === updatedItem.trackId);
+    if (trackIndex === -1) return;
+    
+    const itemIndex = tracks[trackIndex].items.findIndex(item => item.id === updatedItem.id);
+    if (itemIndex === -1) return;
+    
+    // 创建新的轨道数据
+    const newTracks = [...tracks];
+    
+    // 保留现有属性，只更新拖拽、缩放、旋转相关属性
+    newTracks[trackIndex].items[itemIndex] = {
+      ...newTracks[trackIndex].items[itemIndex],
+      x: updatedItem.x,
+      y: updatedItem.y,
+      width: updatedItem.width,
+      height: updatedItem.height,
+      rotation: updatedItem.rotation,
+      scale: updatedItem.scale,
+      opacity: updatedItem.opacity
+    };
+    
+    // 更新轨道数据
+    handleTrackChange(newTracks);
+    
+    // 更新编辑状态
+    updateElementEditingState(updatedItem);
+  };
+
+  // 添加回被误删的函数
+  const handleBack = () => {
+    window.history.back();
+  };
+
+  // 处理导出对话框
+  const handleExportClick = () => {
+    if (!tracks || tracks.length === 0) {
+      message.warning('请先添加素材再导出视频');
+      return;
+    }
+    // 打印tracks
+    console.log('tracks:', tracks);
+  };
+
+  // 监听视频时长变化，同步更新背景时长
+  useEffect(() => {
+    // 获取视频轨道和视频时长
+    const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
+    const videoItem = videoTrack?.items[0];
+    const videoDuration = videoItem?.duration || 10;
+
+    // 获取背景轨道和音频轨道
+    const backgroundTrack = tracks.find(track => track.type === TRACK_TYPES.BACKGROUND);
+    const audioTrack = tracks.find(track => track.type === TRACK_TYPES.AUDIO);
+    
+    // 标记是否需要更新轨道
+    let needsUpdate = false;
+    
+    // 创建新的轨道数据
+    const newTracks = tracks.map(track => {
+      // 更新背景轨道
+      if (track.type === TRACK_TYPES.BACKGROUND && track.items.length > 0) {
+        const backgroundItem = track.items[0];
+        if (backgroundItem.duration !== videoDuration) {
+          needsUpdate = true;
+          return {
+            ...track,
+            items: track.items.map(item => ({
+              ...item,
+              duration: videoDuration
+            }))
+          };
+        }
+      }
+      
+      // 更新音频轨道
+      if (track.type === TRACK_TYPES.AUDIO && track.items.length > 0) {
+        const audioItem = track.items[0];
+        if (audioItem.duration !== videoDuration) {
+          needsUpdate = true;
+          return {
+            ...track,
+            items: track.items.map(item => ({
+              ...item,
+              duration: videoDuration
+            }))
+          };
+        }
+      }
+      
+      return track;
+    });
+    
+    // 如果有轨道需要更新，应用更新
+    if (needsUpdate) {
+      setTracks(newTracks);
+      handleTrackChange(newTracks);
+    }
+  }, [tracks]);
 
   return (
     <div className="video-edit-page">
       <div className="video-edit-container">
-        {/* Fixed Navigation */}
-        <div className="fixed-navigation" data-active={activeNav}>
-          <div className="logo-section">
-            <div className="logo">
-              <img src={logo} alt="Logo" />
-            </div>
-            <div className="brand-wrapper" onClick={handleBack}>
-              <div className="back-button">
-                <LeftOutlined />
-              </div>
-              <span className="brand-text">剪辑</span>
-            </div>
-          </div>
-          <div className="nav-items">
-            {navItems.map(item => (
-              <div
-                key={item.key}
-                className={`nav-item ${activeNav === item.key ? 'active' : ''}`}
-                onClick={() => setActiveNav(item.key)}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                <span className="nav-label">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="content-area">
-          {/* Categories Header */}
-          <div className="categories-header">
-            <div className="category-section">
-              <div className="section-header">
-                <span className="title">{`选择${navItems.find(item => item.key === activeNav)?.label || ''}素材`}</span>
-              </div>
-              <div className="category-list">
-                {materialCategories[activeNav]?.map(cat => (
-                  <div 
-                    key={cat.key}
-                    className={`category-item ${activeCategory === cat.key ? 'active' : ''}`}
-                    onClick={() => setActiveCategory(cat.key)}
-                  >
-                    {cat.label}
-                  </div>
-                )) || (
-                  <div className="empty-tip">暂无分类</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Material Grid */}
-          <div className="template-grid">
-            {/* 模板素材 */}
-            {activeNav === 'template' && (() => {
-              // 获取基于当前分类的模板数据
-              let displayTemplates = templates;
-              
-              if (activeCategory !== 'all' && templatesByCategory[activeCategory]) {
-                displayTemplates = templatesByCategory[activeCategory];
-              }
-              
-              return displayTemplates.map((template) => (
-                <div 
-                  key={template.id} 
-                  className="material-card template"
-                  onClick={() => handleMaterialClick('video', template)}
-                >
-                  <div className="material-card-content">
-                    <img 
-                      src={template.cover} 
-                      alt={template.name} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <div className="template-info" style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      padding: '8px',
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0))',
-                    }}>
-                      <div className="template-title" style={{
-                        color: '#fff',
-                        fontSize: '12px',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        marginBottom: '4px'
-                      }}>{template.name}</div>
-                      <div className="template-category" style={{
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: '10px',
-                      }}>{template.categories.length > 0 ? template.categories[0].name : '未分类'}</div>
-                    </div>
-                  </div>
-                </div>
-              ));
-            })()}
-
-            {/* 人像素材 */}
-            {activeNav === 'avatar' && (() => {
-              // 获取基于当前分类的人像数据
-              let displayAvatars = avatars;
-              
-              if (activeCategory !== 'all' && avatarsByCategory[activeCategory]) {
-                displayAvatars = avatarsByCategory[activeCategory];
-              }
-              
-              return displayAvatars.map((avatar) => (
-                <div 
-                  key={avatar.id} 
-                  className="material-card avatar"
-                  onClick={() => handleMaterialClick('person', avatar)}
-                >
-                  <div className="material-card-content">
-                    <img 
-                      src={avatar.cover} 
-                      alt={avatar.name} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <div className="avatar-info" style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      padding: '8px',
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0))',
-                    }}>
-                      <div className="avatar-name" style={{
-                        color: '#fff',
-                        fontSize: '12px',
-                        textAlign: 'center',
-                      }}>{avatar.name}</div>
-                      <div className="avatar-type" style={{
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: '10px',
-                        textAlign: 'center',
-                      }}>{avatar.style} · {avatar.pose}</div>
-                    </div>
-                  </div>
-                </div>
-              ));
-            })()}
-
-            {/* 音频素材 */}
-            {activeNav === 'audio' && (() => {
-              // 获取基于当前分类的音乐数据
-              let displayMusic = music;
-              
-              if (activeCategory !== 'all' && musicByCategory[activeCategory]) {
-                displayMusic = musicByCategory[activeCategory];
-              }
-              
-              return (
-                <>
-                  {displayMusic.map((audioItem) => (
-                    <div 
-                      key={audioItem.id} 
-                      className="material-card audio"
-                      onClick={() => handleMaterialClick('audio', audioItem)}
-                    >
-                      <div className="material-card-content">
-                        <div className="icon">
-                          <CustomerServiceFilled />
-                        </div>
-                        <div className="audio-info">
-                          <div className="name">{audioItem.name}</div>
-                          <div className="duration">{formatDuration(audioItem.duration)}</div>
-                        </div>
-                        <div 
-                          className="play-button"
-                          onClick={(e) => handleAudioPlay(audioItem, e)}
-                          style={{ 
-                            marginLeft: 'auto',
-                            fontSize: '22px',
-                            color: '#1890ff',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            transition: 'all 0.3s',
-                          }}
-                        >
-                          {playingAudioId === audioItem.id ? 
-                            <PauseCircleOutlined /> : 
-                            <PlayCircleOutlined />
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              );
-            })()}
-
-            {/* 背景素材 */}
-            {activeNav === 'background' && (() => {
-              // 获取基于当前分类的背景数据
-              let displayBackgrounds = backgrounds;
-              
-              if (activeCategory !== 'all' && backgroundsByCategory[activeCategory]) {
-                displayBackgrounds = backgroundsByCategory[activeCategory];
-              }
-              
-              return displayBackgrounds.map((background) => (
-                <div 
-                  key={background.id} 
-                  className="material-card background"
-                  onClick={() => handleMaterialClick('image', background)}
-                >
-                  <div className="material-card-content">
-                    <img 
-                      src={background.cover} 
-                      alt={background.name} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <div className="background-info" style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      padding: '8px',
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0))',
-                    }}>
-                      <div className="background-category" style={{
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: '10px',
-                        textAlign: 'center',
-                      }}>{background.categories?.[0]?.name || '未分类'}</div>
-                    </div>
-                  </div>
-                </div>
-              ));
-            })()}
-
-            {/* 文本素材 */}
-            {activeNav === 'text' && (
-              <>
-                {activeCategory === 'all' ? (
-                  // 显示所有分类的气泡
-                  Object.entries(bubblesByCategory).map(([category, categoryBubbles]) => (
-                    <React.Fragment key={category}>
-                      <div className="category-title">{category}</div>
-                      <div className="bubbles-grid">
-                        {categoryBubbles.map((bubble) => (
-                          <div 
-                            key={bubble.id} 
-                            className="material-card bubble"
-                            onClick={() => handleMaterialClick('text', bubble)}
-                          >
-                            <div 
-                              className="bubble-content"
-                              style={{
-                                backgroundImage: `url(${bubble.preview_url || bubble.imageUrl})`,
-                                backgroundSize: 'contain',
-                                backgroundPosition: 'center',
-                                backgroundRepeat: 'no-repeat'
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </React.Fragment>
-                  ))
-                ) : (
-                  // 显示选中分类的气泡
-                  <div className="bubbles-grid">
-                    {bubblesByCategory[activeCategory]?.map((bubble) => (
-                      <div 
-                        key={bubble.id} 
-                        className="material-card bubble"
-                        onClick={() => handleMaterialClick('text', bubble)}
-                      >
-                        <div 
-                          className="bubble-content"
-                          style={{
-                            backgroundImage: `url(${bubble.preview_url || bubble.imageUrl})`,
-                            backgroundSize: 'contain',
-                            backgroundPosition: 'center',
-                            backgroundRepeat: 'no-repeat'
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* 元素素材 */}
-            {activeNav === 'element' && (() => {
-              let displayElements = elements;
-              
-              if (activeCategory !== 'all' && elementsByCategory) {
-                displayElements = elements.filter(element => 
-                  element.categories.some(cat => cat.name === activeCategory)
-                );
-              }
-              
-              return displayElements.map((element) => (
-                <div 
-                  key={element.id} 
-                  className="material-card element"
-                  onClick={() => handleMaterialClick('image', element)}
-                >
-                  <div className="material-card-content">
-                    <img 
-                      src={element.cover || element.url} 
-                      alt={element.name} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  </div>
-                </div>
-              ));
-            })()}
-
-            {/* 我的素材 */}
-            {activeNav === 'material' && (
-              <>
-                <div className="my-material-tabs">
-                  {[
-                    { key: 'template', label: '模板' },
-                    { key: 'video', label: '视频' },
-                    { key: 'audio', label: '音频' },
-                    { key: 'image', label: '贴图' }
-                  ].map(tab => (
-                    <div
-                      key={tab.key}
-                      className={`my-material-tab ${activeMyMaterialTab === tab.key ? 'active' : ''}`}
-                      onClick={() => setActiveMyMaterialTab(tab.key)}
-                    >
-                      {tab.label}
-                    </div>
-                  ))}
-                </div>
-                <div className="my-material-content">
-                  {Array(6).fill(null).map((_, index) => (
-                    <div key={index} className="material-card my-material-item">
-                      <div className="material-card-content">
-                        {activeMyMaterialTab === 'template' && (
-                          <>
-                            <div className="my-material-cover">
-                              <img src={`https://picsum.photos/300/200?random=${index}`} alt={`模板 ${index + 1}`} />
-                            </div>
-                            <div className="my-material-info">
-                              <div className="my-material-title">我的模板 {index + 1}</div>
-                              <div className="my-material-duration">00:30</div>
-                            </div>
-                          </>
-                        )}
-                        {activeMyMaterialTab === 'video' && (
-                          <>
-                            <div className="my-material-cover">
-                              <img src={`https://picsum.photos/300/200?random=${index + 10}`} alt={`视频 ${index + 1}`} />
-                            </div>
-                            <div className="my-material-info">
-                              <div className="my-material-title">我的视频 {index + 1}</div>
-                              <div className="my-material-duration">00:15</div>
-                            </div>
-                          </>
-                        )}
-                        {activeMyMaterialTab === 'audio' && (
-                          <>
-                            <div className="my-material-icon">
-                              <CustomerServiceFilled />
-                            </div>
-                            <div className="my-material-info">
-                              <div className="my-material-title">我的音频 {index + 1}</div>
-                              <div className="my-material-duration">00:30</div>
-                            </div>
-                            <div className="my-material-play">
-                              <PlayCircleOutlined />
-                            </div>
-                          </>
-                        )}
-                        {activeMyMaterialTab === 'image' && (
-                          <>
-                            <div className="my-material-cover">
-                              <img src={`https://picsum.photos/300/300?random=${index + 20}`} alt={`贴图 ${index + 1}`} />
-                            </div>
-                            <div className="my-material-info">
-                              <div className="my-material-title">我的贴图 {index + 1}</div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        {/* 使用MaterialsPanel组件替换原来的侧边栏 */}
+        <MaterialsPanel 
+          onMaterialClick={handleMaterialClick}
+          onBack={handleBack}
+          playingAudioId={playingAudioId}
+          onAudioPlay={handleAudioPlay}
+        />
 
         {/* Main Content */}
         <div className="main-content">
@@ -1251,141 +1057,54 @@ const VideoEdit = () => {
             <div className="preview-section">
               <div className="preview-header">
                 <h3>视频预览</h3>
-                <div className="header-actions">
-                  <Button 
-                    type="primary" 
-                    icon={<ExportOutlined />} 
-                    onClick={handleExportClick}
-                    className="export-button"
-                  >
-                    导出视频
-                  </Button>
-                </div>
               </div>
               <div className="preview-container">
-                <div className="preview-wrapper">
-                  <div className="preview-aspect-ratio">
-                    <div className="preview-content">
-                      {tracks.length === 0 ? (
-                        <div className="empty-state">
-                          <p>开始创建您的视频</p>
-                          <p>从左侧素材库中选择素材</p>
-                        </div>
-                      ) : (
-                        <VideoPreview 
-                          videoSrc={getActiveVideoSrc()}
-                          tracks={tracks}
-                          currentTime={currentTime}
-                          isPlaying={isPlaying}
-                          onPlay={() => {
-                            console.log('Play requested');
-                            setIsPlaying(true);
-                          }}
-                          onPause={() => {
-                            console.log('Pause requested');
-                            setIsPlaying(false);
-                          }}
-                          onSeek={(time) => {
-                            console.log('Seek to:', time);
-                            handleSeek(time);
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <VideoPreview 
+                  videoSrc={getActiveVideoSrc()}
+                  tracks={tracks}
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                  onPlay={() => {
+                    console.log('Play requested');
+                    setIsPlaying(true);
+                  }}
+                  onPause={() => {
+                    console.log('Pause requested');
+                    setIsPlaying(false);
+                  }}
+                  onSeek={(time) => {
+                    console.log('Seek to:', time);
+                    handleSeek(time);
+                  }}
+                  onItemSelect={handleItemSelect}
+                  onItemChange={handlePreviewItemChange}
+                />
               </div>
             </div>
 
             {/* 右侧编辑区域 */}
-            <div className="edit-section">
-              <div className="edit-header">
-                <h3>{selectedTrackItem ? '编辑元素' : '视频设置'}</h3>
-              </div>
-              <div className="edit-content">
-                {selectedTrackItem ? (
-                  // 如果选中了元素，显示元素编辑选项
-                  <>
-                    <div className="edit-item">
-                      <div className="item-header">
-                        <span className="item-title">基础设置</span>
-                      </div>
-                      <div className="item-content">
-                        {/* 根据选中元素类型显示不同的编辑选项 */}
-                        {selectedTrackItem.type === TRACK_TYPES.TEXT && (
-                          <div className="setting-group">
-                            <div className="setting-label">文本内容</div>
-                            <Input.TextArea 
-                              rows={4} 
-                              value={selectedTrackItem.content}
-                              onChange={(e) => {/* 处理文本更改 */}}
-                            />
-                          </div>
-                        )}
-                        {selectedTrackItem.type === TRACK_TYPES.VIDEO && (
-                          <div className="setting-group">
-                            <div className="setting-label">视频音量</div>
-                            <Slider 
-                              value={videoVolume} 
-                              onChange={setVideoVolume}
-                              min={0}
-                              max={100}
-                            />
-                          </div>
-                        )}
-                        {/* 添加更多元素类型的编辑选项 */}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  // 如果没有选中元素，显示默认的视频设置
-                  <>
-                    <div className="edit-item">
-                      <div className="item-header">
-                        <span className="item-title">字幕设置</span>
-                      </div>
-                      <div className="item-content">
-                        <div className="setting-group">
-                          <div className="setting-label">显示字幕</div>
-                          <div className="setting-control">
-                            <Switch checked={showSubtitle} onChange={setShowSubtitle} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="edit-item">
-                      <div className="item-header">
-                        <span className="item-title">音频设置</span>
-                      </div>
-                      <div className="item-content">
-                        <div className="setting-group">
-                          <div className="setting-label">视频音量</div>
-                          <div className="setting-control">
-                            <Slider 
-                              value={videoVolume} 
-                              onChange={setVideoVolume}
-                              min={0}
-                              max={100}
-                            />
-                          </div>
-                        </div>
-                        <div className="setting-group">
-                          <div className="setting-label">背景音乐音量</div>
-                          <div className="setting-control">
-                            <Slider 
-                              value={bgmVolume} 
-                              onChange={setBgmVolume}
-                              min={0}
-                              max={100}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            <EditPanel
+              selectedTrackItem={selectedTrackItem}
+              showSubtitle={showSubtitle}
+              setShowSubtitle={setShowSubtitle}
+              videoVolume={videoVolume}
+              setVideoVolume={setVideoVolume}
+              bgmVolume={bgmVolume}
+              setBgmVolume={setBgmVolume}
+              elementOpacity={elementOpacity}
+              setElementOpacity={setElementOpacity}
+              elementRotation={elementRotation}
+              setElementRotation={setElementRotation}
+              elementTextContent={elementTextContent}
+              setElementTextContent={setElementTextContent}
+              elementTextColor={elementTextColor}
+              setElementTextColor={setElementTextColor}
+              elementTextSize={elementTextSize}
+              setElementTextSize={setElementTextSize}
+              handleElementPropertyChange={handleElementPropertyChange}
+              trackTypes={TRACK_TYPES}
+              onExportClick={handleExportClick}
+            />
           </div>
 
           {/* 下部分：时间轴区域 */}
@@ -1396,15 +1115,8 @@ const VideoEdit = () => {
               backgroundColor: '#f0f2f5' // 添加较深的背景色
             }}
           >
-            {!isTimelineCollapsed && (
-              <div 
-                className="timeline-resize-handle" 
-                onMouseDown={handleTimelineResizeStart}
-                ref={timelineResizeRef}
-              />
-            )}
             <TrackEditor 
-              initialTracks={JSON.parse(JSON.stringify(tracks))} 
+              initialTracks={tracks} 
               onTrackChange={handleTrackChange}
               onCursorChange={handleCursorChange}
               onItemSelect={handleItemSelect}
@@ -1415,27 +1127,10 @@ const VideoEdit = () => {
               onSelectedVideoIdChange={handleSelectedVideoIdChange}
               onDeleteItem={handleDeleteItem}
             />
-            <Button 
-              className="toggle-tracks-button"
-              type="text"
-              icon={isTimelineCollapsed ? <RightOutlined /> : <LeftOutlined />}
-              onClick={handleToggleTracks}
-            >
-              {isTimelineCollapsed ? '编辑轨道' : '收起轨道'}
-            </Button>
           </div>
         </div>
       </div>
       
-      {/* Export Dialog */}
-      <ExportDialog
-        visible={exportDialogVisible}
-        onClose={handleExportClose}
-        onExport={handleExportSubmit}
-        tracks={tracks}
-        duration={20}
-        darkMode={true}
-      />
     </div>
   );
 };

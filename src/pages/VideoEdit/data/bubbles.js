@@ -42,7 +42,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/a10fb395-86f5-4e02-bdc3-da48ea07ae0e.png",
+    "url": "https://res.chanjing.cc/public/res/bg/a10fb395-86f5-4e02-bdc3-da48ea07ae0e.png",
     "width": 408,
     "height": 107
   },
@@ -62,7 +62,7 @@ export const bubbles = [
         "bottom": 5,
         "content": "强烈推荐",
         "fontSize": 74,
-    "textAlign": "center",
+        "textAlign": "center",
         "fontFamily": "MiSans-Regular",
         "fontWeight": 500,
         "strokeColor": "#2A7FFB",
@@ -88,7 +88,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/e396285e-97b6-4be6-bd71-e67b925d941e.png",
+    "url": "https://res.chanjing.cc/public/res/bg/e396285e-97b6-4be6-bd71-e67b925d941e.png",
     "width": 468,
     "height": 217
   },
@@ -134,7 +134,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/203aa1fb-bcb5-4a06-b83b-c2e78b914e9b.png",
+    "url": "https://res.chanjing.cc/public/res/bg/203aa1fb-bcb5-4a06-b83b-c2e78b914e9b.png",
     "width": 408,
     "height": 149
   },
@@ -180,7 +180,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/76ce23fc-9f0d-436a-a993-f3325bf212aa.png",
+    "url": "https://res.chanjing.cc/public/res/bg/76ce23fc-9f0d-436a-a993-f3325bf212aa.png",
     "width": 438,
     "height": 159
   },
@@ -226,7 +226,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/918dc2b1-d110-483a-962e-9c77fc3204df.png",
+    "url": "https://res.chanjing.cc/public/res/bg/918dc2b1-d110-483a-962e-9c77fc3204df.png",
     "width": 419,
     "height": 100
   },
@@ -272,7 +272,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/ece05d9c-967b-4a2e-868a-196cc9a34a8a.png",
+    "url": "https://res.chanjing.cc/public/res/bg/ece05d9c-967b-4a2e-868a-196cc9a34a8a.png",
     "width": 500,
     "height": 160
   },
@@ -318,7 +318,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/fc6d0135-1946-446f-a14f-2c57ca152a13.png",
+    "url": "https://res.chanjing.cc/public/res/bg/fc6d0135-1946-446f-a14f-2c57ca152a13.png",
     "width": 442,
     "height": 149
   },
@@ -364,7 +364,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/a22b5e49-4959-4e09-aafb-f705feba89f8.png",
+    "url": "https://res.chanjing.cc/public/res/bg/a22b5e49-4959-4e09-aafb-f705feba89f8.png",
     "width": 444,
     "height": 89
   },
@@ -410,7 +410,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/0315d4a2-c919-4c74-a3e4-0482150eea35.png",
+    "url": "https://res.chanjing.cc/public/res/bg/0315d4a2-c919-4c74-a3e4-0482150eea35.png",
     "width": 375,
     "height": 144
   },
@@ -456,7 +456,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/1fe9066d-b0a4-4242-8a50-8849740d41e8.png",
+    "url": "https://res.chanjing.cc/public/res/bg/1fe9066d-b0a4-4242-8a50-8849740d41e8.png",
     "width": 356,
     "height": 260
   },
@@ -502,7 +502,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/9eec1f8e359d4cb39fc90401bde88468.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/9eec1f8e359d4cb39fc90401bde88468.png",
     "width": 461,
     "height": 103
   },
@@ -548,7 +548,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/a4d2dcef827a426d89b8030bc560a1d8.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/a4d2dcef827a426d89b8030bc560a1d8.png",
     "width": 459,
     "height": 94
   },
@@ -594,7 +594,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/439ce55465cb41e4ba930b591b5d6196.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/439ce55465cb41e4ba930b591b5d6196.png",
     "width": 498,
     "height": 78
   },
@@ -640,7 +640,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/2283463ff9c942a38932a17a41252f5e.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/2283463ff9c942a38932a17a41252f5e.png",
     "width": 500,
     "height": 110
   },
@@ -686,7 +686,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/fe703fceba9a495791864bc54061fc2f.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/fe703fceba9a495791864bc54061fc2f.png",
     "width": 486,
     "height": 87
   },
@@ -732,7 +732,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/3db8be420f09468085b4fb9292991407.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/3db8be420f09468085b4fb9292991407.png",
     "width": 455,
     "height": 103
   },
@@ -778,7 +778,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/32a30cad52ec4bad8f99d6c211864627.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/32a30cad52ec4bad8f99d6c211864627.png",
     "width": 465,
     "height": 93
   },
@@ -824,7 +824,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-28/c34b54b3b68946f1b550f364c50d4e48.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-28/c34b54b3b68946f1b550f364c50d4e48.png",
     "width": 496,
     "height": 134
   },
@@ -870,7 +870,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-28/3038d685742d4cd2966cc49bdc5de537.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-28/3038d685742d4cd2966cc49bdc5de537.png",
     "width": 462,
     "height": 138
   },
@@ -916,7 +916,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-27/5470814fbce94f37b23316c6e4afbf40.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-27/5470814fbce94f37b23316c6e4afbf40.png",
     "width": 500,
     "height": 111
   },
@@ -962,7 +962,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-28/234413ac6c184f358269112d470ce63c.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-28/234413ac6c184f358269112d470ce63c.png",
     "width": 437,
     "height": 160
   },
@@ -1008,7 +1008,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-27/3afbba4f2a5d476f9513aeeb6c81c35c.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-27/3afbba4f2a5d476f9513aeeb6c81c35c.png",
     "width": 475,
     "height": 114
   },
@@ -1054,7 +1054,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/11ff8988c98b4844a5dcbdac21807991.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/11ff8988c98b4844a5dcbdac21807991.png",
     "width": 493,
     "height": 74
   },
@@ -1100,7 +1100,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/f4779282d6ba4ea6b8dce3115dda8dbb.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/f4779282d6ba4ea6b8dce3115dda8dbb.png",
     "width": 491,
     "height": 95
   },
@@ -1146,7 +1146,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/e6fde167d46c42f6a2ed42542e287d8b.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/e6fde167d46c42f6a2ed42542e287d8b.png",
     "width": 479,
     "height": 99
   },
@@ -1192,7 +1192,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/8ee0f8181653423e8344a268e028d32d.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/8ee0f8181653423e8344a268e028d32d.png",
     "width": 365,
     "height": 58
   },
@@ -1238,7 +1238,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/65c0055d7cdd426e8498eab6c87e89dd.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/65c0055d7cdd426e8498eab6c87e89dd.png",
     "width": 474,
     "height": 94
   },
@@ -1284,7 +1284,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/27fbc57c35be4278ab6e865ea70945cb.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-08-29/27fbc57c35be4278ab6e865ea70945cb.png",
     "width": 362,
     "height": 85
   },
@@ -1330,7 +1330,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/public/res/bg/ec12a416-e249-4b91-be5c-6914c769a185.png",
+    "url": "https://res.chanjing.cc/public/res/bg/ec12a416-e249-4b91-be5c-6914c769a185.png",
     "width": 376,
     "height": 168
   },
@@ -1376,7 +1376,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/d597f271faa542f18da9ee9505a69155.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/d597f271faa542f18da9ee9505a69155.png",
     "width": 362,
     "height": 241
   },
@@ -1422,7 +1422,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/427d76774ddd41f196bdfa05937343a7.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/427d76774ddd41f196bdfa05937343a7.png",
     "width": 399,
     "height": 241
   },
@@ -1468,7 +1468,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/3a2e89910de74c699888906e4a8acf0f.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/3a2e89910de74c699888906e4a8acf0f.png",
     "width": 477,
     "height": 131
   },
@@ -1514,7 +1514,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/a48a063433b7483ca179fffb16d0e36e.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/a48a063433b7483ca179fffb16d0e36e.png",
     "width": 463,
     "height": 155
   },
@@ -1560,7 +1560,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/5d5d6aa5d5ce4f0181eddfc7a071d28a.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/5d5d6aa5d5ce4f0181eddfc7a071d28a.png",
     "width": 347,
     "height": 290
   },
@@ -1606,7 +1606,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/eb77ebf652704a66b908014613ed2d2b.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/eb77ebf652704a66b908014613ed2d2b.png",
     "width": 360,
     "height": 285
   },
@@ -1652,7 +1652,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/134b4f37485042f7b2c24cbe557dba55.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/134b4f37485042f7b2c24cbe557dba55.png",
     "width": 381,
     "height": 243
   },
@@ -1698,7 +1698,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/f21e4e0d7d944048a1c7225758b14b81.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/f21e4e0d7d944048a1c7225758b14b81.png",
     "width": 396,
     "height": 204
   },
@@ -1744,7 +1744,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/0efed825558b49ceb714a5ee4d380073.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/0efed825558b49ceb714a5ee4d380073.png",
     "width": 411,
     "height": 160
   },
@@ -1790,7 +1790,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/451c3e9e9f0947a3bf6d0bbb8b836cb0.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/451c3e9e9f0947a3bf6d0bbb8b836cb0.png",
     "width": 376,
     "height": 158
   },
@@ -1836,7 +1836,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/c93c6423ffcd4a12a8048fa0fe99fbd5.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/c93c6423ffcd4a12a8048fa0fe99fbd5.png",
     "width": 300,
     "height": 281
   },
@@ -1882,7 +1882,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/3f206b71af1547aea6487a158bf3c490.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-16/3f206b71af1547aea6487a158bf3c490.png",
     "width": 477,
     "height": 125
   },
@@ -1928,7 +1928,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-17/8deaf3ae032d486eb4a2ac441a6afcc5.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-17/8deaf3ae032d486eb4a2ac441a6afcc5.png",
     "width": 323,
     "height": 232
   },
@@ -1974,7 +1974,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-17/fcd8416c1e0b4338ad185baba3136970.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-17/fcd8416c1e0b4338ad185baba3136970.png",
     "width": 433,
     "height": 305
   },
@@ -2020,7 +2020,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-17/364cb5e9c7f74059bc98c353f7dcbb5b.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-17/364cb5e9c7f74059bc98c353f7dcbb5b.png",
     "width": 436,
     "height": 294
   },
@@ -2066,7 +2066,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/0d7872255f284333a0f748b72abb9e4c.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/0d7872255f284333a0f748b72abb9e4c.png",
     "width": 279,
     "height": 133
   },
@@ -2112,7 +2112,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/d32a99c510034a59a5564cc755522ff0.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/d32a99c510034a59a5564cc755522ff0.png",
     "width": 397,
     "height": 126
   },
@@ -2158,7 +2158,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/6d051532c92e44f8a8b6441ae739b070.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/6d051532c92e44f8a8b6441ae739b070.png",
     "width": 388,
     "height": 92
   },
@@ -2204,7 +2204,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/476561e5e42d49d0be4fc54fc1e6ce4c.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/476561e5e42d49d0be4fc54fc1e6ce4c.png",
     "width": 314,
     "height": 118
   },
@@ -2250,7 +2250,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/a3fb8a45d8cc435bbd388953b2476fd7.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-23/a3fb8a45d8cc435bbd388953b2476fd7.png",
     "width": 264,
     "height": 123
   },
@@ -2296,7 +2296,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/50b8642c68f04311b0e10ab12d84037d.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/50b8642c68f04311b0e10ab12d84037d.png",
     "width": 372,
     "height": 138
   },
@@ -2342,7 +2342,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/8ffca9afe81449c7a218b335d6bbe962.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/8ffca9afe81449c7a218b335d6bbe962.png",
     "width": 500,
     "height": 105
   },
@@ -2388,7 +2388,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/7606156cda664d3fae48e4a67f9d086e.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/7606156cda664d3fae48e4a67f9d086e.png",
     "width": 385,
     "height": 237
   },
@@ -2434,7 +2434,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/3cd933e1ab5240318eb022fd022ef378.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/3cd933e1ab5240318eb022fd022ef378.png",
     "width": 489,
     "height": 147
   },
@@ -2480,7 +2480,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/bae20e789b0c49779a58ed059c042eb8.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-07-25/bae20e789b0c49779a58ed059c042eb8.png",
     "width": 461,
     "height": 122
   },
@@ -2526,7 +2526,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/0345960d56ae43dc8b6545fd1315ac9d.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/0345960d56ae43dc8b6545fd1315ac9d.png",
     "width": 500,
     "height": 259
   },
@@ -2572,7 +2572,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/bd4e271e6c704403bd7160be598b9eda.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/bd4e271e6c704403bd7160be598b9eda.png",
     "width": 500,
     "height": 215
   },
@@ -2618,7 +2618,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/35f2c78714e3499c8be2a74f61ffef6e.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/35f2c78714e3499c8be2a74f61ffef6e.png",
     "width": 497,
     "height": 140
   },
@@ -2664,7 +2664,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/565e2e8b86594abf89095e9da7e52f80.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/565e2e8b86594abf89095e9da7e52f80.png",
     "width": 494,
     "height": 187
   },
@@ -2710,7 +2710,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/c84c7e7885ca4b97896400a791d27c5b.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/c84c7e7885ca4b97896400a791d27c5b.png",
     "width": 500,
     "height": 96
   },
@@ -2756,7 +2756,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/3bd3abeeaf7e40dcbab90e988e48107a.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/3bd3abeeaf7e40dcbab90e988e48107a.png",
     "width": 500,
     "height": 202
   },
@@ -2802,7 +2802,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/51707e0bf5f547a59d6d732c1a9e2581.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/51707e0bf5f547a59d6d732c1a9e2581.png",
     "width": 393,
     "height": 237
   },
@@ -2848,7 +2848,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/4541081a55d74ec7ae8de91863b85500.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/4541081a55d74ec7ae8de91863b85500.png",
     "width": 420,
     "height": 122
   },
@@ -2894,7 +2894,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/05a136454fed4fada85f8873a8940b99.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/05a136454fed4fada85f8873a8940b99.png",
     "width": 417,
     "height": 60
   },
@@ -2940,7 +2940,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/14c381eeaf2d4023ba186b444f7ecbb7.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/14c381eeaf2d4023ba186b444f7ecbb7.png",
     "width": 431,
     "height": 95
   },
@@ -2986,7 +2986,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/2ec9a25e330a43408bfe4e768a1295e6.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/2ec9a25e330a43408bfe4e768a1295e6.png",
     "width": 439,
     "height": 76
   },
@@ -3032,7 +3032,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/00b8fcf2c27a4e8589a2a56107db3fa1.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2024-12-30/00b8fcf2c27a4e8589a2a56107db3fa1.png",
     "width": 487,
     "height": 163
   },
@@ -3078,7 +3078,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/9d4632095c484665b3d58cfe7561d2b9.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/9d4632095c484665b3d58cfe7561d2b9.png",
     "width": 490,
     "height": 78
   },
@@ -3124,7 +3124,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/dcccf0337c534bb1b65ff8659444def1.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/dcccf0337c534bb1b65ff8659444def1.png",
     "width": 485,
     "height": 142
   },
@@ -3170,7 +3170,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/2494307bbe6e4fadb0bb672d8e611532.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/2494307bbe6e4fadb0bb672d8e611532.png",
     "width": 409,
     "height": 93
   },
@@ -3216,7 +3216,7 @@ export const bubbles = [
       }
     },
     "type": "bubble",
-    "preview_url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/0bc4b01aa8024addb53174e427ebe970.png",
+    "url": "https://res.chanjing.cc/chanjing/static/res/bg/2025-02-28/0bc4b01aa8024addb53174e427ebe970.png",
     "width": 465,
     "height": 153
   }
