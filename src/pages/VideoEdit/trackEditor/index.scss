@@ -1,0 +1,1404 @@
+// 轨道编辑器主容器
+.track-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #fff;
+  color: #333;
+  user-select: none;
+  font-size: 12px;
+
+  &.collapsed {
+    .timeline {
+      height: 180px;
+      
+      .tracks-container {
+        .track {
+          &:not(.type-video) {
+            display: none;
+          }
+          
+          &.type-video {
+            height: 140px;
+            margin: 16px;
+            border-radius: 12px;
+            background: rgba(24, 144, 255, 0.03);
+            border: 1px solid rgba(24, 144, 255, 0.1);
+            
+            .track-header {
+              background: transparent;
+              border: none;
+            }
+            
+            .track-content {
+              padding: 12px;
+              
+              .track-item {
+                height: 116px;
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(4px);
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                
+                .media-container {
+                  height: 100%;
+                  
+                  .video-frames-container {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    gap: 8px;
+                    padding: 8px;
+                    
+                    .video-frame {
+                      flex: 1;
+                      height: 100%;
+                      border-radius: 6px;
+                      overflow: hidden;
+                      background-size: cover;
+                      background-position: center;
+                      transition: all 0.2s;
+                      
+                      &:hover {
+                        transform: scale(1.02);
+                      }
+                    }
+                  }
+                }
+
+                &.selected {
+                  border: 2px solid #1890ff;
+                  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.1);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .collapsed-video-tracks {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 6px;
+      background: rgba(0, 0, 0, 0.02);
+      
+      .empty-track-message {
+        color: rgba(0, 0, 0, 0.45);
+        padding: 0 16px;
+        font-size: 14px;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+      }
+
+      .collapsed-video-item {
+        position: relative;
+        height: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+        border: 2px solid transparent;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        &.selected {
+          border-color: #1890ff;
+          box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.1);
+        }
+
+        .video-frames-container {
+          width: 100%;
+          height: 100%;
+          background-color: #000;
+          transition: all 0.3s ease;
+        }
+
+        .video-item-duration {
+          position: absolute;
+          bottom: 8px;
+          right: 8px;
+          padding: 4px 8px;
+          background: rgba(0, 0, 0, 0.6);
+          border-radius: 4px;
+          color: #fff;
+          font-size: 12px;
+        }
+      }
+    }
+  }
+
+  // 时间线控制区域
+  .timeline-controls {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #e8e8e8;
+    background-color: #fff;
+    justify-content: space-between;
+    position: relative;
+
+    .left-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+
+      .play-button {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        padding: 0;
+        color: #666;
+
+        &:hover {
+          background: #e8e8e8;
+          color: #1890ff;
+        }
+
+        .anticon {
+          font-size: 20px;
+        }
+      }
+
+      .control-button {
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+
+        &:hover {
+          color: #1890ff;
+          background: rgba(24, 144, 255, 0.06);
+        }
+
+        &:disabled {
+          color: #d9d9d9;
+          cursor: not-allowed;
+          
+          &:hover {
+            background: none;
+          }
+        }
+
+        .anticon {
+          font-size: 16px;
+        }
+      }
+    }
+
+    .center-controls {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+
+      .toggle-tracks-button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        background: none;
+        padding: 0;
+        
+        &:hover {
+          color: #1890ff;
+        }
+
+        .anticon {
+          font-size: 12px;
+          transition: transform 0.2s;
+        }
+      }
+    }
+
+    .right-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+
+      .zoom-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-right: 8px;
+        
+        .zoom-button {
+          background: none;
+          border: none;
+          color: #666;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+          transition: all 0.2s;
+
+          &:hover {
+            color: #1890ff;
+            background: rgba(24, 144, 255, 0.06);
+          }
+
+          .anticon {
+            font-size: 16px;
+          }
+        }
+
+        .zoom-text {
+          font-size: 12px;
+          color: #666;
+          min-width: 40px;
+          text-align: center;
+        }
+      }
+
+      .time-display {
+        font-family: monospace;
+        font-size: 14px;
+        color: #666;
+        min-width: 80px;
+        text-align: right;
+      }
+    }
+  }
+
+  // 时间线区域
+  .timeline {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: calc(100vh - 250px);
+
+    // 时间刻度尺
+    .timeline-ruler {
+      height: 24px;
+      background-color: #fff;
+      border-bottom: 1px solid #e8e8e8;
+      position: sticky;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      transform-origin: left;
+      box-sizing: border-box;
+      padding-left: 36px;
+      overflow: visible;
+
+      // 游标指示器样式
+      .cursor-indicator {
+        position: absolute;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        background-color: #1890ff;
+        border-radius: 50%;
+        transform: translate(-50%, 0);
+        cursor: pointer;
+        z-index: 1000 !important;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 1px #1890ff, 0 0 6px rgba(24, 144, 255, 0.6);
+        pointer-events: all;
+        margin-top: 1px;
+        
+        &:hover {
+          transform: translate(-50%, 0) scale(1.1);
+          box-shadow: 0 0 0 1px #1890ff, 0 0 8px rgba(24, 144, 255, 0.8);
+        }
+        
+        &.dragging {
+          transform: translate(-50%, 0) scale(1.1);
+          box-shadow: 0 0 0 1px #1890ff, 0 0 8px rgba(24, 144, 255, 0.8);
+          background-color: #096dd9;
+        }
+      }
+
+      .ruler-mark {
+        position: absolute;
+        width: 1px;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        padding-bottom: 4px;
+        border-right: 1px solid #e8e8e8;
+        pointer-events: none;
+
+        .ruler-label {
+          position: absolute;
+          bottom: 4px;
+          left: 0;
+          font-size: 10px;
+          color: #666;
+          transform: translateX(-50%);
+          white-space: nowrap;
+        }
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          width: 1px;
+          height: 8px;
+          background-color: #d9d9d9;
+        }
+
+        &.second-mark {
+          &::before {
+            height: 12px;
+            background-color: #1890ff;
+          }
+        }
+      }
+    }
+
+    // 轨道容器
+    .tracks-container {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      max-height: 100%;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      padding-left: 36px;
+      height: auto;
+      overflow: visible;
+      // 空状态样式
+      .empty-timeline-state {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        padding: 40px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.02);
+        border: 2px dashed rgba(24, 144, 255, 0.15);
+        min-width: 360px;
+        backdrop-filter: blur(8px);
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(24, 144, 255, 0.03);
+          border-color: rgba(24, 144, 255, 0.25);
+          transform: translate(-50%, -52%);
+        }
+
+        .empty-state-content {
+          .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            color: rgba(24, 144, 255, 0.5);
+            animation: float 3s ease-in-out infinite;
+
+            .anticon {
+              transition: transform 0.3s ease;
+            }
+
+            &:hover .anticon {
+              transform: scale(1.1);
+            }
+          }
+
+          .empty-state-text {
+            font-size: 16px;
+            color: rgba(0, 0, 0, 0.65);
+            line-height: 1.6;
+            max-width: 280px;
+            margin: 0 auto;
+            font-weight: 500;
+            
+            &::after {
+              content: '';
+              display: block;
+              width: 40px;
+              height: 3px;
+              background: rgba(24, 144, 255, 0.25);
+              margin: 16px auto 0;
+              border-radius: 2px;
+            }
+          }
+        }
+      }
+    }
+
+    // 游标线样式
+    .cursor-line {
+      position: absolute;
+      top: 24px;
+      bottom: 0;
+      width: 2px;
+      background-color: rgba(24, 144, 255, 0.65);
+      transform: translateX(-50%);
+      cursor: col-resize;
+      z-index: 999 !important;
+      pointer-events: all;
+      box-shadow: 0 0 4px rgba(24, 144, 255, 0.4);
+      
+      &:hover {
+        width: 3px;
+        background-color: rgba(24, 144, 255, 0.85);
+        box-shadow: 0 0 6px rgba(24, 144, 255, 0.6);
+      }
+      
+      &.dragging {
+        width: 3px;
+        background-color: rgba(24, 144, 255, 0.85);
+        box-shadow: 0 0 6px rgba(24, 144, 255, 0.6);
+      }
+    }
+  }
+
+  // 轨道容器
+  .tracks-container {
+    position: relative;
+    min-height: 100%;
+    padding-left: 36px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    
+    .track {
+      display: flex;
+      min-height: 44px;
+      height: auto;
+      border-bottom: 1px solid #e8e8e8;
+      position: relative;
+      transition: height 0.3s;
+      margin-bottom: 2px;
+      flex-shrink: 0;
+      
+      .track-header {
+        position: absolute;
+        left: -36px;
+        width: 36px;
+        height: 100%;
+        background-color: #f5f5f5;
+        border-right: 1px solid #e8e8e8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+      }
+      
+      .track-content {
+        position: relative;
+        flex: 1;
+        background: #fafafa;
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 6px 0;
+
+        .track-item {
+          position: absolute;
+          min-height: 38px;
+          height: calc(100% - 12px);
+          padding: 0;
+          display: flex;
+          align-items: center;
+          cursor: move;
+          transition: all 0.2s;
+          z-index: 5;
+          border-radius: 4px;
+          font-size: 11px;
+          background: #fff;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+          margin: 0 2px;
+
+          &:hover {
+            border-color: rgba(24, 144, 255, 0.5);
+            box-shadow: 0 2px 6px rgba(24, 144, 255, 0.15);
+          }
+
+          .media-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+
+            .video-frames-container {
+              position: relative;
+              width: 100%;
+              height: 100%;
+              background-color: rgba(0, 0, 0, 0.02);
+              border-radius: 4px;
+              transition: all 0.2s;
+              
+              &:hover {
+                transform: scale(1.02);
+              }
+            }
+          }
+
+          &.selected {
+            border: 2px solid #1890ff;
+            box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.2), 0 0 12px rgba(24, 144, 255, 0.3);
+            z-index: 10;
+            
+            &::after {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              border-radius: inherit;
+              pointer-events: none;
+              animation: trackItemPulse 2s infinite;
+            }
+            
+            @keyframes trackItemPulse {
+              0% { box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4); }
+              70% { box-shadow: 0 0 0 8px rgba(24, 144, 255, 0); }
+              100% { box-shadow: 0 0 0 0 rgba(24, 144, 255, 0); }
+            }
+          }
+
+          .resize-handle {
+            z-index: 2;
+            background-color: #1890ff;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            position: absolute;
+            top: 0;
+            width: 6px;
+            height: 100%;
+            cursor: col-resize;
+
+            &:hover {
+              opacity: 1;
+            }
+
+            &.left {
+              left: -2px;
+              border-radius: 3px 0 0 3px;
+            }
+
+            &.right {
+              right: -2px;
+              border-radius: 0 3px 3px 0;
+            }
+          }
+
+          &.dragging {
+            opacity: 0.7;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            cursor: grabbing;
+            z-index: 100;
+          }
+
+          &.collision-warning {
+            box-shadow: 0 0 0 1px rgba(255, 77, 79, 0.4);
+            border-color: rgba(255, 77, 79, 0.6);
+            animation: collision-pulse 1s ease-in-out infinite;
+            z-index: 10;
+          }
+
+          // 音频轨道样式
+          &.type-voice,
+          &.type-background {
+            .audio-container {
+              width: 100%;
+              height: 100%;
+              padding: 0 10px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              position: relative;
+              z-index: 1;
+              background: rgba(255, 255, 255, 0.85);
+              border-radius: 3px;
+              margin: 3px;
+              height: calc(100% - 6px);
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+              
+              .audio-icon {
+                color: #0050b3;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+              }
+              
+              .audio-info {
+                flex: 1;
+                
+                .audio-name {
+                  font-size: 11px;
+                  font-weight: 500;
+                  color: #0050b3;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                }
+                
+                .audio-duration {
+                  font-size: 10px;
+                  color: #444;
+                }
+              }
+            }
+          }
+
+          // 文本轨道样式
+          &.type-text {
+            .text-container {
+              display: flex;
+              align-items: center;
+              background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
+              height: 100%;
+              padding: 0 12px;
+              gap: 12px;
+
+              .text-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 16px;
+                color: #fa8c16;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.9);
+                border-radius: 50%;
+                box-shadow: 0 2px 6px rgba(250, 140, 22, 0.15);
+                flex-shrink: 0;
+              }
+
+              .text-content {
+                flex: 1;
+                font-size: 12px;
+                font-weight: 500;
+                color: #fa8c16;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+            }
+          }
+
+          // 悬停效果增强
+          &:hover {
+            .audio-container,
+            .text-container {
+              .audio-icon,
+              .text-icon {
+                transform: scale(1.1);
+                transition: transform 0.2s ease;
+              }
+            }
+          }
+
+          // 选中状态样式增强
+          &.selected {
+            &.type-voice,
+            &.type-background {
+              .audio-container {
+                background: linear-gradient(to right, #096dd9, #40a9ff);
+              }
+            }
+
+            &.type-text {
+              .text-container {
+                background: linear-gradient(135deg, #fff7e6 0%, #ffd591 100%);
+              }
+            }
+          }
+        }
+      }
+
+      // 特殊轨道类型样式
+      &.type-video {
+        min-height: 50px;
+        height: auto;
+        
+        .track-content {
+          min-height: 50px;
+          
+          .track-item {
+            min-height: 44px;
+          }
+        }
+      }
+      
+      &.collapsed {
+        height: 28px;
+      }
+      
+      &.drag-over {
+        background-color: rgba(24, 144, 255, 0.05);
+      }
+      
+      &.drag-target {
+        background-color: rgba(82, 196, 26, 0.05);
+        border: 1px dashed #52c41a;
+      }
+      
+      &.drag-target-invalid {
+        background-color: rgba(255, 77, 79, 0.05);
+        border: 1px dashed #ff4d4f;
+      }
+    }
+  }
+
+  .toggle-tracks {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    
+    &:hover {
+      color: #1890ff;
+    }
+  }
+
+  // 禁用播放按钮样式
+  .play-button {
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      
+      &:hover {
+        background: #f5f5f5;
+        color: #666;
+      }
+    }
+  }
+}
+
+// 拖拽幽灵元素样式
+.drag-ghost {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  opacity: 0.85;
+  transform: scale(1.05);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  overflow: hidden;
+  will-change: transform, left, top;
+  backdrop-filter: blur(2px);
+  
+  &.type-video {
+    background-color: rgba(230, 244, 255, 0.95);
+    border: 1.5px solid #91caff;
+  }
+
+  &.type-voice {
+    background-color: rgba(246, 255, 237, 0.95);
+    border: 1.5px solid #b7eb8f;
+  }
+
+  &.type-background {
+    background-color: rgba(255, 247, 230, 0.95);
+    border: 1.5px solid #ffd591;
+  }
+
+  &.type-image {
+    background-color: rgba(249, 240, 255, 0.95);
+    border: 1.5px solid #d3adf7;
+  }
+
+  &.type-text {
+    background-color: rgba(255, 242, 232, 0.95);
+    border: 1.5px solid #ffbb96;
+  }
+  
+  &.collision-warning {
+    box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.7), 0 8px 20px rgba(0, 0, 0, 0.2);
+    animation: collision-pulse 0.6s infinite alternate;
+  }
+  
+  animation: float 3s ease-in-out infinite;
+  
+  .media-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    gap: 6px;
+    padding: 0 8px;
+    overflow: hidden;
+    
+    .media-thumbnail {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 3px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      
+      &.video-thumbnail {
+        width: 64px;
+      }
+      
+      &.audio-thumbnail {
+        width: 64px;
+      }
+      
+      .thumbnail-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      
+      .media-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 16px;
+        z-index: 1;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+    }
+    
+    .video-frames {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      
+      .video-frame {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+      }
+    }
+    
+    .ghost-video-frames {
+      width: 64px;
+      height: 36px;
+      flex-shrink: 0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .audio-waveform-container {
+      position: relative;
+      width: 64px;
+      height: 36px;
+      flex-shrink: 0;
+      
+      &.ghost-waveform {
+        .waveform-bar {
+          position: absolute;
+          bottom: 50%;
+          width: 2px;
+          background-color: rgba(0, 0, 0, 0.5);
+          transform: translateY(50%);
+          
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            transform: scaleY(-1) translateY(100%);
+          }
+        }
+      }
+    }
+    
+    .text-content-preview {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      text-align: center;
+    }
+    
+    .item-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+    }
+  }
+}
+
+@keyframes collision-pulse {
+  0% {
+    box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.7), 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.7), 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: scale(1.08);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes waveform-animation {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+.human-video-track {
+  .track-content {
+    .track-item {
+      background-color: rgba(230, 244, 255, 0.95) !important;
+      border: 1px solid #91caff !important;
+      position: relative;
+      overflow: hidden;
+      
+      &.has-cover-image {
+        
+        .text-background {
+          &::after {
+            content: attr(data-content);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 36px;
+            opacity: 0.05;
+            white-space: nowrap;
+          }
+        }
+        
+        .media-container {
+          position: relative;
+          z-index: 1;
+          background-color: rgba(230, 244, 255, 0.7);
+          border-radius: 4px;
+          margin: 4px;
+          height: calc(100% - 8px);
+          backdrop-filter: blur(2px);
+          
+          .video-thumbnail {
+            width: 40px !important;
+            height: 40px !important;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            
+            .video-frames {
+              .video-frame {
+                background-size: cover !important;
+                background-repeat: no-repeat;
+                background-position: center;
+                opacity: 1 !important;
+                position: absolute;
+                left: 0 !important;
+                top: 0;
+                width: 100%;
+                height: 100%;
+              }
+            }
+          }
+          
+          .item-text {
+            font-weight: 500;
+            color: #333;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+          }
+        }
+      }
+      
+      .resize-handle {
+        z-index: 2;
+      }
+    }
+  }
+}
+
+.human-video-container {
+  .video-thumbnail {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.drag-ghost.type-video {
+  &.human-ghost {
+    position: relative;
+    
+    .media-container {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .ghost-video-frames {
+      .video-frame {
+        background-size: cover !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+      }
+    }
+  }
+}
+
+.temp-cursor-indicator,
+.temp-cursor-line {
+  position: absolute;
+  z-index: 11;
+  pointer-events: none;
+}
+
+.temp-cursor-indicator {
+  background-color: #595959 !important;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  transform: translate(-50%, -50%) !important;
+  margin-top: 12px !important;
+}
+
+.temp-cursor-line {
+  background-color: #595959 !important;
+}
+
+.timeline-section {
+  position: relative;
+  border-top: 1px solid #e8e8e8;
+  background-color: #fff;
+  min-height: 180px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &.collapsed {
+    .tracks-container {
+      .track {
+        &:not(.type-video) {
+          display: none;
+        }
+        
+        &.type-video {
+          height: 80px;
+          margin-bottom: 12px;
+          border-radius: 8px;
+          background: rgba(24, 144, 255, 0.03);
+          border: 1px solid rgba(24, 144, 255, 0.1);
+          
+          .track-content {
+            padding: 8px;
+            
+            .track-item {
+              height: 64px;
+              background: rgba(255, 255, 255, 0.9);
+              backdrop-filter: blur(4px);
+              border-radius: 6px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+              
+              .media-container {
+                .video-frames-container {
+                  position: relative;
+                  width: 100%;
+                  height: 100%;
+                  display: flex;
+                  gap: 4px;
+                  padding: 4px;
+                  
+                  .video-frame {
+                    flex: 1;
+                    height: 100%;
+                    border-radius: 4px;
+                    overflow: hidden;
+                    background-size: cover;
+                    background-position: center;
+                    transition: all 0.2s;
+                    
+                    &:hover {
+                      transform: scale(1.05);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .timeline-resize-handle {
+    position: absolute;
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background-color: transparent;
+    cursor: ns-resize;
+    z-index: 100;
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background-color: rgba(24, 144, 255, 0.1);
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 30px;
+        height: 2px;
+        background-color: #1890ff;
+        border-radius: 2px;
+      }
+    }
+  }
+
+  .toggle-tracks-button {
+    display: none;
+  }
+
+  &:not(.collapsed) {
+    min-height: 300px;
+  }
+}
+
+// 空编辑器状态样式
+.empty-editor-state {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  color: #fff;
+  
+  .empty-state-content {
+    text-align: center;
+    padding: 24px;
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+      color: rgba(255, 255, 255, 0.3);
+      
+      .anticon {
+        animation: float 3s ease-in-out infinite;
+      }
+    }
+    
+    .empty-state-text {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.65);
+      line-height: 1.5;
+    }
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+// 背景轨道项目样式 - 禁用缩放hover效果
+.bg-track-item {
+  transition: none !important;
+  
+  &:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  .bg-media-container {
+    .bg-frames-container {
+      transition: none !important;
+      
+      &:hover {
+        transform: none !important;
+      }
+    }
+  }
+}
+
+// 对其他轨道项目保持原有的hover效果
+.track-item:not(.bg-track-item) {
+  &:hover {
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+}
+
+// 背景轨道的整体样式
+.bg-track {
+  background-color: rgba(111, 66, 193, 0.05);
+  
+  .track-header {
+    background-color: rgba(111, 66, 193, 0.1);
+  }
+  
+  .track-content {
+    background-color: rgba(111, 66, 193, 0.03);
+  }
+}
+
+/* 音频轨道样式 */
+.track-item.type-audio {
+  background: linear-gradient(to right, #1890ff, #69c0ff);
+  border-left: 3px solid #1890ff;
+  box-shadow: 0 1px 3px rgba(24, 144, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  
+  /* 添加音频波纹背景装饰 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, 
+        rgba(255, 255, 255, 0.2) 1px, 
+        rgba(255, 255, 255, 0.1) 2px, 
+        rgba(255, 255, 255, 0.05) 3px, 
+        rgba(255, 255, 255, 0) 4px, 
+        rgba(255, 255, 255, 0) 6px,
+        rgba(255, 255, 255, 0.05) 7px,
+        rgba(255, 255, 255, 0.1) 8px,
+        rgba(255, 255, 255, 0.2) 9px);
+    background-size: 10px 10px, 10px 10px, 18px 100%;
+    opacity: 0.3;
+    z-index: 0;
+  }
+  
+  .audio-container {
+    width: 100%;
+    height: 100%;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 3px;
+    margin: 3px;
+    height: calc(100% - 6px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    
+    .audio-icon {
+      color: #0050b3;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .audio-info {
+      flex: 1;
+      
+      .audio-name {
+        font-size: 11px;
+        font-weight: 500;
+        color: #0050b3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .audio-duration {
+        font-size: 10px;
+        color: #444;
+      }
+    }
+  }
+  
+  &:hover {
+    background: linear-gradient(to right, #096dd9, #40a9ff);
+    
+    .audio-container {
+      background: rgba(255, 255, 255, 0.9);
+    }
+  }
+  
+  &.selected {
+    background: linear-gradient(to right, #0050b3, #1890ff);
+    border-color: #003a8c;
+    
+    .audio-container {
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    }
+  }
+}

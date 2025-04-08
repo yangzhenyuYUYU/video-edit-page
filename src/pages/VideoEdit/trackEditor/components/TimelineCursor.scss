@@ -1,0 +1,50 @@
+.timeline-cursor {
+  &-indicator {
+    position: absolute;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    background-color: #000;
+    border-radius: 50%;
+    transform: translate(-50%, 0);
+    cursor: pointer;
+    z-index: 1000;
+    margin-top: 1px;
+    border: 1.5px solid #000;
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 0 6px rgba(0, 0, 0, 0.5);
+    opacity: 0.9;
+    
+    &.dragging {
+      background-color: #202d3b;
+    }
+  }
+  
+  &-line {
+    position: absolute;
+    top: 11px;
+    bottom: 0;
+    width: 1px;
+    background-color: #000;
+    transform: translateX(-50%);
+    cursor: col-resize;
+    z-index: 999;
+    pointer-events: auto;
+    &:hover {
+        width: 2px;
+    }
+    &:active {
+        width: 2px;
+    }
+  }
+}
+
+// 拖拽覆盖层样式
+.cursor-drag-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  cursor: col-resize;
+}
