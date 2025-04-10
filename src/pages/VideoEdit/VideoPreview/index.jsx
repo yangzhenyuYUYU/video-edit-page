@@ -163,8 +163,14 @@ const TextElement = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // 获取元素的中心点
-    const element = document.getElementById(`element-${item.id}`);
+    if (!item) return;
+    
+    // 确保元素仍然被选中
+    onSelect?.(item);
+
+    // 获取元素的当前位置和角度
+    const elementId = `element-${item.id}`;
+    const element = document.getElementById(elementId);
     if (!element) return;
     
     const rect = element.getBoundingClientRect();
@@ -181,41 +187,58 @@ const TextElement = ({
     
     const startRotation = item.rotation || 0;
     
+    // 创建一个透明覆盖层，捕获所有鼠标事件
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.zIndex = '9999';
+    overlay.style.cursor = 'crosshair';
+    document.body.appendChild(overlay);
+    
     const onMouseMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      moveEvent.stopPropagation();
+      
       const currentAngle = Math.atan2(
         moveEvent.clientY - (containerRect.top + centerY),
         moveEvent.clientX - (containerRect.left + centerX)
       );
       
-      // 增加旋转灵敏度，通过乘以系数
+      // 增加旋转灵敏度
       const rotation = startRotation + (currentAngle - startAngle) * (180 / Math.PI) * 1.5;
       
       // 限制旋转角度在 -180 到 180 度之间
       const normalizedRotation = ((rotation % 360) + 360) % 360;
       const boundedRotation = normalizedRotation > 180 ? normalizedRotation - 360 : normalizedRotation;
       
-      // 使用 CSS3 transform 实现旋转，保持中心点不变
-      if (element) {
-        // 保持元素在容器中的相对位置
-        const x = (item.x / 100) * containerSize.width;
-        const y = (item.y / 100) * containerSize.height;
-        
-        element.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.webkitTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.MozTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.msTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.OTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-      }
-      
-      onChange?.({
+      // 更新元素
+      const updatedItem = {
         ...item,
         rotation: boundedRotation
-      });
+      };
+      
+      onChange?.(updatedItem);
     };
     
-    const onMouseUp = () => {
+    const onMouseUp = (upEvent) => {
+      upEvent.preventDefault();
+      upEvent.stopPropagation();
+      
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      
+      // 移除覆盖层
+      document.body.removeChild(overlay);
+      
+      // 确保元素仍然被选中
+      setTimeout(() => {
+        if (item) {
+          onSelect?.(item);
+        }
+      }, 50);
     };
     
     document.addEventListener('mousemove', onMouseMove);
@@ -236,10 +259,22 @@ const TextElement = ({
         top: 0,
         transformOrigin: 'center',
         cursor: isDragging ? 'grabbing' : 'grab',
-        zIndex: isSelected ? 999 : item.zIndex || 0
+        zIndex: isSelected ? 9999 : item.zIndex || 0,
+        boxShadow: isSelected ? '0 0 0 2px #1890ff, 0 0 8px rgba(24, 144, 255, 0.6)' : 'none',
+        minWidth: '30px',
+        minHeight: '30px',
+        overflow: 'visible'
       }}
-      onMouseDown={handleDragStart}
-      onClick={handleClick}
+      onMouseDown={(e) => {
+        e.preventDefault(); // 阻止默认行为
+        e.stopPropagation(); // 阻止冒泡
+        handleDragStart(e);
+      }}
+      onClick={(e) => {
+        e.preventDefault(); // 阻止默认行为
+        e.stopPropagation(); // 阻止冒泡
+        handleClick(e);
+      }}
     >
       {item.url ? (
         <img 
@@ -257,12 +292,61 @@ const TextElement = ({
       )}
       
       {isSelected && (
-        <div className="resize-rotate-handles">
-          <div className="handle nw" onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, 'nw'); }} />
-          <div className="handle ne" onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, 'ne'); }} />
-          <div className="handle se" onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, 'se'); }} />
-          <div className="handle sw" onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, 'sw'); }} />
-          <div className="rotate-handle" onMouseDown={(e) => handleRotateStart(e, item)} />
+        <div className="resize-rotate-handles" style={{
+          zIndex: 100000, 
+          position: 'absolute',
+          top: '-15px',
+          left: '-15px',
+          right: '-15px',
+          bottom: '-15px',
+          pointerEvents: 'none',
+          border: '1px dashed red',
+          overflow: 'visible'
+        }}>
+          <div className="handle nw" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', top: '0', left: '0', cursor: 'nw-resize', transform: 'translate(-50%, -50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} 
+            onMouseDown={(e) => { 
+              e.stopPropagation(); 
+              console.log("控制点nw被点击 - TextElement");
+              onResizeStart(e, 'nw'); 
+            }} 
+          />
+          <div className="handle ne" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', top: '0', right: '0', cursor: 'ne-resize', transform: 'translate(50%, -50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, 'ne'); }} />
+          <div className="handle se" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', bottom: '0', right: '0', cursor: 'se-resize', transform: 'translate(50%, 50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, 'se'); }} />
+          <div className="handle sw" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', bottom: '0', left: '0', cursor: 'sw-resize', transform: 'translate(-50%, 50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, 'sw'); }} />
+          
+          <div 
+            className="rotate-handle" 
+            style={{ 
+              pointerEvents: 'auto', 
+              position: 'absolute',
+              top: '-40px',
+              left: '50%',
+              width: '22px',
+              height: '22px',
+              background: '#1890ff',
+              border: '2px solid #fff',
+              borderRadius: '50%',
+              transform: 'translateX(-50%)',
+              cursor: 'pointer',
+              zIndex: 100000,
+              boxShadow: '0 0 4px 2px rgba(0,0,0,0.3)'
+            }} 
+            onMouseDown={(e) => { 
+              e.stopPropagation(); 
+              console.log("旋转控制点被点击");
+              onRotateStart ? onRotateStart(e, item) : handleRotateStart(e); 
+            }} 
+          >
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: '50%',
+              width: '3px',
+              height: '16px',
+              background: '#1890ff',
+              transform: 'translateX(-50%)'
+            }}></div>
+          </div>
         </div>
       )}
     </div>
@@ -286,8 +370,13 @@ const ImageElement = ({
   // 计算实际元素位置时考虑容器的9:16比例
   const x = (item.x / 100) * containerSize.width;
   const y = (item.y / 100) * containerSize.height;
-  const width = item.width ? (item.width / 100) * containerSize.width : 'auto';
-  const height = item.height ? (item.height / 100) * containerSize.height : 'auto';
+  
+  // 确保width和height始终有有效值，防止NaN
+  const itemWidth = typeof item.width === 'number' && !isNaN(item.width) ? item.width : 20;
+  const itemHeight = typeof item.height === 'number' && !isNaN(item.height) ? item.height : 20;
+  
+  const width = (itemWidth / 100) * containerSize.width;
+  const height = (itemHeight / 100) * containerSize.height;
 
   // 处理拖拽开始
   const handleDragStart = (e) => {
@@ -376,7 +465,7 @@ const ImageElement = ({
   };
 
   // 处理旋转开始
-  const handleRotateStart = (e) => {
+  const handleRotateStart = (e, item) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -469,6 +558,10 @@ const ImageElement = ({
       containerRect
     };
     
+    console.log('缩放开始:', startData);
+    // ImageElement不应该访问VideoPreview的状态
+    // setResizeStart(startData);
+
     // 创建一个透明覆盖层，捕获所有鼠标事件
     const overlay = document.createElement('div');
     overlay.style.position = 'fixed';
@@ -477,9 +570,9 @@ const ImageElement = ({
     overlay.style.width = '100vw';
     overlay.style.height = '100vh';
     overlay.style.zIndex = '9999';
-    overlay.style.cursor = `${corner}-resize`;
+    overlay.style.cursor = `${corner}-resize`; // 会根据角落自动改变
     document.body.appendChild(overlay);
-    
+
     const onMouseMove = (moveEvent) => {
       moveEvent.preventDefault();
       moveEvent.stopPropagation();
@@ -493,46 +586,85 @@ const ImageElement = ({
       const deltaXPercent = ((moveEvent.clientX - startData.startX) / rect.width) * 100;
       const deltaYPercent = ((moveEvent.clientY - startData.startY) / rect.height) * 100;
       
-      let newWidth = startData.startWidth;
-      let newHeight = startData.startHeight;
+      let newWidth = startData.startWidth || 20;
+      let newHeight = startData.startHeight || 20;
       
       // 根据不同角落调整大小
       switch (startData.corner) {
         case 'se': // 右下角
           newWidth = Math.max(5, startData.startWidth + deltaXPercent);
           newHeight = Math.max(5, startData.startHeight + deltaYPercent);
+          overlay.style.cursor = 'se-resize';
           break;
         case 'sw': // 左下角
           newWidth = Math.max(5, startData.startWidth - deltaXPercent);
           newHeight = Math.max(5, startData.startHeight + deltaYPercent);
+          overlay.style.cursor = 'sw-resize';
           break;
         case 'ne': // 右上角
           newWidth = Math.max(5, startData.startWidth + deltaXPercent);
           newHeight = Math.max(5, startData.startHeight - deltaYPercent);
+          overlay.style.cursor = 'ne-resize';
           break;
         case 'nw': // 左上角
           newWidth = Math.max(5, startData.startWidth - deltaXPercent);
           newHeight = Math.max(5, startData.startHeight - deltaYPercent);
+          overlay.style.cursor = 'nw-resize';
           break;
       }
       
-      // 更新元素尺寸
+      console.log('New dimensions:', { newWidth, newHeight });
+      
+      // 所有元素类型都应用尺寸调整和缩放
+      const scaleFactor = newWidth / startData.startWidth;
+      
+      // 记录当前选中的元素ID，用于防止状态丢失
+      const currentSelectedId = item.id;
+      
+      // 更新元素
       const updatedItem = {
         ...item,
-        width: parseFloat(newWidth.toFixed(4)),
-        height: parseFloat(newHeight.toFixed(4))
+        width: newWidth,
+        height: newHeight,
+        scale: Math.max(0.1, startData.startScale * scaleFactor)
       };
       
       onChange?.(updatedItem);
+      
+      // 确保选中状态不会丢失
+      setTimeout(() => {
+        if (item?.id !== currentSelectedId) {
+          // 如果选中状态已丢失，重新设置
+          onSelect?.(updatedItem);
+        }
+      }, 0);
+      
+      console.log('Element resize:', { 
+        type: item.type,
+        scale: updatedItem.scale,
+        width: updatedItem.width, 
+        height: updatedItem.height 
+      });
     };
     
     const onMouseUp = (upEvent) => {
       upEvent.preventDefault();
       upEvent.stopPropagation();
       
+      // ImageElement不应该访问VideoPreview的状态
+      // setResizeStart(null);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      
+      // 移除覆盖层
       document.body.removeChild(overlay);
+      
+      // 确保元素仍然被选中
+      setTimeout(() => {
+        if (item) {
+          onSelect?.(item);
+        }
+      }, 50);
     };
     
     document.addEventListener('mousemove', onMouseMove);
@@ -605,36 +737,114 @@ const ImageElement = ({
         top: 0,
         transformOrigin: 'center',
         cursor: isDragging ? 'grabbing' : 'grab',
-        zIndex: isSelected ? 999 : item.zIndex || 0 // 确保选中的元素在最上层
+        zIndex: isSelected ? 9999 : item.zIndex || 0,
+        boxShadow: isSelected ? '0 0 0 2px #1890ff, 0 0 8px rgba(24, 144, 255, 0.6)' : 'none',
+        minWidth: '30px',
+        minHeight: '30px',
+        overflow: 'visible'
       }}
-      onMouseDown={handleDragStart}
+      onMouseDown={(e) => {
+        e.preventDefault(); // 阻止默认行为
+        e.stopPropagation(); // 阻止冒泡
+        handleDragStart(e);
+      }}
       onClick={(e) => {
         console.log('图片元素被点击:', item.id);
-        e.stopPropagation();
+        e.preventDefault(); // 阻止默认行为
+        e.stopPropagation(); // 阻止冒泡
         onSelect?.(item);
       }}
     >
       <img 
-        src={item.src} 
-        alt={item.alt || 'Image element'}
+        src={item.src || item.url || ''}
+        alt={item.alt || item.content || 'Image element'}
         style={{
           width: '100%',
           height: '100%',
           objectFit: 'contain',
-          pointerEvents: 'none' // 确保图片不捕获鼠标事件
+          pointerEvents: 'none',
+          overflow: 'hidden'
+        }}
+        onError={(e) => {
+          console.error('图片加载失败:', item.src || item.url);
+          e.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%25%22%20height%3D%22100%25%22%3E%3Crect%20fill%3D%22%23ddd%22%20width%3D%22100%25%22%20height%3D%22100%25%22%2F%3E%3Ctext%20fill%3D%22%23666%22%20font-family%3D%22sans-serif%22%20font-size%3D%2220%22%20text-anchor%3D%22middle%22%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%3E图片加载失败%3C%2Ftext%3E%3C%2Fsvg%3E';
         }}
       />
       
       {isSelected && (
-        <div className="resize-rotate-handles">
-          {/* 缩放控制点 */}
-          <div className="handle nw" style={{ pointerEvents: 'auto' }} onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'nw'); }} />
-          <div className="handle ne" style={{ pointerEvents: 'auto' }} onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'ne'); }} />
-          <div className="handle se" style={{ pointerEvents: 'auto' }} onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'se'); }} />
-          <div className="handle sw" style={{ pointerEvents: 'auto' }} onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'sw'); }} />
+        <div className="resize-rotate-handles" style={{
+          zIndex: 100000, 
+          position: 'absolute',
+          top: '-15px',
+          left: '-15px',
+          right: '-15px',
+          bottom: '-15px',
+          pointerEvents: 'none',
+          border: '1px dashed red',
+          overflow: 'visible'
+        }}>
+          <div className="handle nw" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', top: '0', left: '0', cursor: 'nw-resize', transform: 'translate(-50%, -50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} 
+            onMouseDown={(e) => { 
+              e.stopPropagation(); 
+              console.log("控制点nw被点击 - ImageElement");
+              handleResizeStart(e, 'nw'); 
+            }} 
+          />
+          <div className="handle ne" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', top: '0', right: '0', cursor: 'ne-resize', transform: 'translate(50%, -50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} 
+            onMouseDown={(e) => { 
+              e.stopPropagation(); 
+              console.log("控制点ne被点击 - ImageElement");
+              handleResizeStart(e, 'ne'); 
+            }} 
+          />
+          <div className="handle se" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', bottom: '0', right: '0', cursor: 'se-resize', transform: 'translate(50%, 50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} 
+            onMouseDown={(e) => { 
+              e.stopPropagation(); 
+              console.log("控制点se被点击 - ImageElement");
+              handleResizeStart(e, 'se'); 
+            }} 
+          />
+          <div className="handle sw" style={{ pointerEvents: 'auto', position: 'absolute', width: '20px', height: '20px', background: '#fff', border: '2px solid #1890ff', borderRadius: '50%', bottom: '0', left: '0', cursor: 'sw-resize', transform: 'translate(-50%, 50%)', boxShadow: '0 0 2px 2px rgba(0,0,0,0.2)' }} 
+            onMouseDown={(e) => { 
+              e.stopPropagation(); 
+              console.log("控制点sw被点击 - ImageElement");
+              handleResizeStart(e, 'sw'); 
+            }} 
+          />
           
-          {/* 旋转控制点 */}
-          <div className="rotate-handle" style={{ pointerEvents: 'auto' }} onMouseDown={(e) => { e.stopPropagation(); handleRotateStart(e); }} />
+          <div 
+            className="rotate-handle" 
+            style={{ 
+              pointerEvents: 'auto', 
+              position: 'absolute',
+              top: '-40px',
+              left: '50%',
+              width: '22px',
+              height: '22px',
+              background: '#1890ff',
+              border: '2px solid #fff',
+              borderRadius: '50%',
+              transform: 'translateX(-50%)',
+              cursor: 'pointer',
+              zIndex: 100000,
+              boxShadow: '0 0 4px 2px rgba(0,0,0,0.3)'
+            }} 
+            onMouseDown={(e) => { 
+              e.stopPropagation(); 
+              console.log("旋转控制点被点击 - ImageElement");
+              onRotateStart ? onRotateStart(e, item) : handleRotateStart(e, item); 
+            }} 
+          >
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: '50%',
+              width: '3px',
+              height: '16px',
+              background: '#1890ff',
+              transform: 'translateX(-50%)'
+            }}></div>
+          </div>
         </div>
       )}
     </div>
@@ -774,7 +984,8 @@ const VideoPreview = ({
               width: 100,
               height: 100,
               isBackground: true,
-              opacity: item.opacity ?? 1 // 默认完全不透明
+              opacity: item.opacity ?? 1, // 默认完全不透明
+              src: item.src || item.url // 确保图片路径字段统一
             };
           }
           
@@ -788,11 +999,12 @@ const VideoPreview = ({
             x: isNewItem ? 50 : item.x,
             y: isNewItem ? 50 : item.y,
             width: item.width ?? (item.type === TRACK_TYPES.TEXT ? 30 : 20),
-            height: item.height ?? 'auto',
+            height: item.height ?? (item.type === TRACK_TYPES.TEXT ? 'auto' : 20),
             rotation: item.rotation ?? 0,
             scale: item.scale ?? 1,
             opacity: item.opacity ?? 1, // 默认完全不透明
-            isNew: isNewItem
+            isNew: isNewItem,
+            src: item.src || item.url // 确保图片路径字段统一
           };
           
           return newItem;
@@ -940,7 +1152,8 @@ const VideoPreview = ({
     };
     
     console.log('缩放开始:', startData);
-    setResizeStart(startData);
+    // ImageElement不应该访问VideoPreview的状态
+    // setResizeStart(startData);
 
     // 创建一个透明覆盖层，捕获所有鼠标事件
     const overlay = document.createElement('div');
@@ -1034,7 +1247,8 @@ const VideoPreview = ({
       upEvent.preventDefault();
       upEvent.stopPropagation();
       
-      setResizeStart(null);
+      // ImageElement不应该访问VideoPreview的状态
+      // setResizeStart(null);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
       
@@ -1216,47 +1430,7 @@ const VideoPreview = ({
         style={{ zIndex: 20 }} // 确保元素层在视频上方
       >
         {/* 先渲染背景元素 */}
-        {backgroundItems.length > 0 && (
-          <div 
-            className="backgrounds-container" 
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              zIndex: 1, // 改用正数但很小的z-index，确保在视频下方
-              overflow: 'hidden',
-              pointerEvents: 'none' // 背景整体不捕获鼠标事件
-            }}
-          >
-            {backgroundItems.map(item => (
-              <div 
-                key={item.renderKey || item.id}
-                className="background-element"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  pointerEvents: 'none' // 背景不捕获鼠标事件
-                }}
-              >
-                <img 
-                  src={item.src}
-                  alt={item.content || "背景"}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    opacity: item.opacity ?? 1
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        {renderBackgrounds()}
         
         {/* 然后渲染前景元素 */}
         {foregroundItems.map(item => {
@@ -1370,6 +1544,93 @@ const VideoPreview = ({
       }
     });
   }, [tracks, currentTime, isPlaying]);
+
+  // 处理元素旋转开始
+  const handleRotateStart = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!item) return;
+    
+    // 确保元素仍然被选中
+    onItemSelect?.(item);
+
+    // 获取元素的当前位置和角度
+    const elementId = `element-${item.id}`;
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const rect = element.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    
+    // 计算相对于容器的中心点
+    const centerX = rect.left - containerRect.left + rect.width / 2;
+    const centerY = rect.top - containerRect.top + rect.height / 2;
+    
+    const startAngle = Math.atan2(
+      e.clientY - (containerRect.top + centerY),
+      e.clientX - (containerRect.left + centerX)
+    );
+    
+    const startRotation = item.rotation || 0;
+    
+    // 创建一个透明覆盖层，捕获所有鼠标事件
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.zIndex = '9999';
+    overlay.style.cursor = 'crosshair';
+    document.body.appendChild(overlay);
+    
+    const onMouseMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      moveEvent.stopPropagation();
+      
+      const currentAngle = Math.atan2(
+        moveEvent.clientY - (containerRect.top + centerY),
+        moveEvent.clientX - (containerRect.left + centerX)
+      );
+      
+      // 增加旋转灵敏度
+      const rotation = startRotation + (currentAngle - startAngle) * (180 / Math.PI) * 1.5;
+      
+      // 限制旋转角度在 -180 到 180 度之间
+      const normalizedRotation = ((rotation % 360) + 360) % 360;
+      const boundedRotation = normalizedRotation > 180 ? normalizedRotation - 360 : normalizedRotation;
+      
+      // 更新元素
+      const updatedItem = {
+        ...item,
+        rotation: boundedRotation
+      };
+      
+      handleElementChange(updatedItem);
+    };
+    
+    const onMouseUp = (upEvent) => {
+      upEvent.preventDefault();
+      upEvent.stopPropagation();
+      
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      
+      // 移除覆盖层
+      document.body.removeChild(overlay);
+      
+      // 确保元素仍然被选中
+      setTimeout(() => {
+        if (item) {
+          onItemSelect?.(item);
+        }
+      }, 50);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
 
   return (
     <div 
@@ -1500,13 +1761,17 @@ const VideoPreview = ({
             }}
           >
             <img 
-              src={item.src}
-              alt={item.content || "背景"}
+              src={item.src || item.url || ''}
+              alt={item.content || item.alt || "背景"}
               style={{
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
                 opacity: item.opacity ?? 1
+              }}
+              onError={(e) => {
+                console.error('背景图片加载失败:', item.src || item.url);
+                e.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%25%22%20height%3D%22100%25%22%3E%3Crect%20fill%3D%22%23333%22%20width%3D%22100%25%22%20height%3D%22100%25%22%2F%3E%3C%2Fsvg%3E';
               }}
             />
           </div>

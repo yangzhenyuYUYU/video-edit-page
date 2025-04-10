@@ -18,6 +18,7 @@
     "react-scripts": "5.0.1",
     "sass": "^1.69.7",
     "sass-loader": "^13.3.3",
+    "typescript": "^5.8.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
