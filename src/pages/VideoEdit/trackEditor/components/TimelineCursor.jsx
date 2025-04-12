@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import './TimelineCursor.scss';
 
 const TimelineCursor = ({
@@ -14,9 +14,10 @@ const TimelineCursor = ({
   const isDraggingRef = useRef(false);
   const initialMouseXRef = useRef(0);
   const initialTimeRef = useRef(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
   
-  // 计算游标位置 - 关键函数
-  const calculateCursorPosition = (time) => {
+  // 计算游标位置 - 使用useCallback缓存函数
+  const calculateCursorPosition = useCallback((time) => {
     // 严格限制：先按照视频实际时长限制，确保不超过视频片段
     const realVideoDuration = actualVideoDuration || duration;
     const boundedTime = Math.min(Math.max(0, time), realVideoDuration - 0.01);
@@ -24,17 +25,17 @@ const TimelineCursor = ({
     const scaledWidthPerSecond = baseWidthPerSecond * zoom;
     // 计算像素位置
     return trackHeaderWidth + (boundedTime * scaledWidthPerSecond);
-  };
+  }, [actualVideoDuration, duration, zoom, trackHeaderWidth]);
   
-  // 从像素位置反推时间
-  const pixelToTime = (pixelPos) => {
+  // 从像素位置反推时间 - 使用useCallback缓存函数
+  const pixelToTime = useCallback((pixelPos) => {
     const baseWidthPerSecond = 100;
     const scaledWidthPerSecond = baseWidthPerSecond * zoom;
     // 计算相对于轨道头部的像素
     const relativePixel = pixelPos - trackHeaderWidth;
     // 转换为时间
     return relativePixel / scaledWidthPerSecond;
-  };
+  }, [zoom, trackHeaderWidth]);
 
   // 处理游标拖拽开始
   const handleCursorMouseDown = (e) => {
@@ -129,6 +130,48 @@ const TimelineCursor = ({
     }
   };
 
+  // 更新光标位置 - 优化渲染性能
+  useEffect(() => {
+    // 计算光标位置
+    const newPosition = calculateCursorPosition(currentTime);
+    
+    // 如果是重置到起点(currentTime=0)，特殊处理以确保立即更新而不是动画过渡
+    if (currentTime === 0) {
+      setCursorPosition(newPosition);
+      // 移除播放状态样式
+      if (cursorRef.current) {
+        cursorRef.current.classList.remove('playing');
+        const cursorLine = cursorRef.current.nextElementSibling;
+        if (cursorLine) {
+          cursorLine.classList.remove('playing');
+        }
+      }
+    } else {
+      // 播放状态下使用平滑过渡
+      if (isPlaying) {
+        const cursorElement = cursorRef.current;
+        if (cursorElement) {
+          cursorElement.classList.add('playing');
+          const cursorLine = cursorElement.nextElementSibling;
+          if (cursorLine) {
+            cursorLine.classList.add('playing');
+          }
+        }
+      } else {
+        // 非播放状态下移除播放样式
+        const cursorElement = cursorRef.current;
+        if (cursorElement) {
+          cursorElement.classList.remove('playing');
+          const cursorLine = cursorElement.nextElementSibling;
+          if (cursorLine) {
+            cursorLine.classList.remove('playing');
+          }
+        }
+      }
+      setCursorPosition(newPosition);
+    }
+  }, [currentTime, calculateCursorPosition, isPlaying]);
+
   // 清理事件监听
   useEffect(() => {
     return () => {
@@ -143,38 +186,38 @@ const TimelineCursor = ({
     };
   }, []);
 
-  // 强制验证游标时间
+  // 强制验证游标时间 - 确保不会超出视频时长范围
   useEffect(() => {
     const realVideoDuration = actualVideoDuration || duration;
+    // 当currentTime大于视频时长时重置到起点
     if (currentTime >= realVideoDuration) {
       console.log(`时间超出视频实际范围：当前=${currentTime}，视频时长=${realVideoDuration}，重置到0`);
       onTimeChange(0);
     }
   }, [currentTime, duration, actualVideoDuration, onTimeChange]);
 
-  // 计算最终显示位置 - 严格确保在视频实际时长范围内
-  const realVideoDuration = actualVideoDuration || duration;
-  const validTime = Math.min(Math.max(0, currentTime), realVideoDuration - 0.01);
-  const cursorPosition = calculateCursorPosition(validTime);
-
   return (
-    <>
+    <div className={`timeline-cursor ${isPlaying ? 'playing' : ''}`}>
       <div
-        className="timeline-cursor-indicator"
+        className={`timeline-cursor-indicator ${isPlaying ? 'playing' : ''} ${isDraggingRef.current ? 'dragging' : ''}`}
         style={{ 
           left: `${cursorPosition}px`,
+          transform: 'translateZ(0) translateX(-50%)',
+          willChange: 'left'
         }}
         onMouseDown={handleCursorMouseDown}
         ref={cursorRef}
       />
       <div
-        className="timeline-cursor-line"
+        className={`timeline-cursor-line ${isPlaying ? 'playing' : ''}`}
         style={{ 
           left: `${cursorPosition}px`,
+          transform: 'translateZ(0) translateX(-50%)',
+          willChange: 'left'
         }}
         onMouseDown={handleCursorMouseDown}
       />
-    </>
+    </div>
   );
 };
 

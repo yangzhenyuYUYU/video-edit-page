@@ -17,6 +17,12 @@
     &.dragging {
       background-color: #202d3b;
     }
+
+    &.playing {
+      background-color: #1890ff;
+      border-color: #1890ff;
+      animation: pulse 1s infinite;
+    }
   }
   
   &-line {
@@ -29,12 +35,41 @@
     cursor: col-resize;
     z-index: 999;
     pointer-events: auto;
+
+    &.playing {
+      width: 2px;
+      background-color: #1890ff;
+      box-shadow: 0 0 4px rgba(24, 144, 255, 0.5);
+      animation: pulse 1s infinite;
+    }
+
     &:hover {
-        width: 2px;
+      width: 2px;
     }
     &:active {
-        width: 2px;
+      width: 2px;
     }
+  }
+
+  // 播放状态下的动画
+  &.playing {
+    .timeline-cursor-indicator,
+    .timeline-cursor-line {
+      transition: left 0.1s linear;
+    }
+  }
+}
+
+// 脉冲动画
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(24, 144, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
   }
 }
 

@@ -73,9 +73,15 @@ const VideoEdit = () => {
   };
 
   // 处理时间轴游标位置变化
-  const handleCursorChange = (time) => {
-    setCurrentTime(time);
-  };
+  const handleCursorChange = useCallback((time) => {
+    if (typeof time !== 'number' || isNaN(time)) {
+      console.warn('无效的时间值:', time);
+      return;
+    }
+    
+    // 更新当前时间
+    setCurrentTime(parseFloat(time.toFixed(2)));
+  }, []);
 
   // 处理选中轨道项目
   const handleItemSelect = (item) => {
@@ -147,6 +153,11 @@ const VideoEdit = () => {
     if (type === 'video') {
       // 获取对应类型
       const trackType = TRACK_TYPES.VIDEO;
+      
+      // 确保轨道区域是展开的
+      if (isTimelineCollapsed) {
+        handleToggleTracks(false); // 使用强制展开
+      }
       
       // 创建新的素材项
       const newItem = {
@@ -233,13 +244,19 @@ const VideoEdit = () => {
       // 处理文本类型
       const trackType = TRACK_TYPES.TEXT;
       
+      // 确保轨道区域是展开的
+      if (isTimelineCollapsed) {
+        handleToggleTracks(false); // 使用强制展开
+      }
+      
       // 创建新的文本项
       const newItem = {
         id: `${type}-${Date.now()}`,
         start: 0,
         duration: 10,
-        content: content.content || '气泡文字',
+        content: (content.struct && content.struct.textInfo) ? content.struct.textInfo.content : (content.content || '气泡文字'),
         url: content.url,
+        // 根据内容格式设置文本样式
         textStyle: content.textStyle || {
           color: "#FFFFFF",
           fontSize: 24,
@@ -254,31 +271,109 @@ const VideoEdit = () => {
         }
       };
 
-      // 获取或创建文本轨道
-      let textTrack = tracks.find(track => track.type === TRACK_TYPES.TEXT);
-      if (!textTrack) {
-        textTrack = {
-          id: `text-${Date.now()}`,
-          type: TRACK_TYPES.TEXT,
-          items: []
+      // 如果是气泡对象，保存气泡的信息
+      if (typeof content === 'object' && (content.type === 'bubble' || content.struct)) {
+        newItem.bubbleStyle = {
+          imageUrl: content.imageUrl || (content.url || ''),
+          textColor: content.textColor || '#FFFFFF',
+          textAlign: content.textAlign || 'center',
+          paddingVertical: content.paddingVertical || 10,
+          paddingHorizontal: content.paddingHorizontal || 10,
+          struct: content.struct || null,
+          url: content.url || '',
+          width: content.width || 300,
+          height: content.height || 200
         };
-        tracks.push(textTrack);
       }
 
-      // 添加新文本项到轨道
-      textTrack.items.push(newItem);
+      // 为每个文本元素创建独立的轨道，而不是复用现有轨道
+      const newTextTrack = {
+        id: `text-${Date.now()}`,
+        type: TRACK_TYPES.TEXT,
+        name: '文本轨道',
+        items: [newItem]
+      };
 
-      // 更新状态
-      setTracks([...tracks]);
-      handleTrackChange(tracks);
+      // 更新轨道列表，添加新创建的文本轨道
+      const newTracks = [newTextTrack, ...tracks];
+      setTracks(newTracks);
+      handleTrackChange(newTracks);
 
       // 选中新添加的文本
       setSelectedTrackItem({
-        trackId: textTrack.id,
+        trackId: newTextTrack.id,
         type: trackType,
         itemId: newItem.id,
         isTrack: false
       });
+
+      // 触发轨道选中事件
+      const trackSelectEvent = new CustomEvent('track-item-select', {
+        detail: {
+          itemId: newItem.id,
+          trackId: newTextTrack.id,
+          type: trackType,
+          item: newItem,
+          expandTimeline: true,
+          forceSelectTrack: true
+        }
+      });
+      document.dispatchEvent(trackSelectEvent);
+
+      // 触发预览区域选中事件
+      const previewSelectEvent = new CustomEvent('preview-element-select', {
+        detail: {
+          itemId: newItem.id,
+          trackId: newTextTrack.id,
+          type: trackType,
+          item: newItem,
+          expandTimeline: true,
+          forceSelectTrack: true
+        }
+      });
+      document.dispatchEvent(previewSelectEvent);
+      
+      // 更新编辑状态
+      updateElementEditingState({
+        ...newItem,
+        type: trackType,
+        trackId: newTextTrack.id
+      });
+      
+      // 延迟一下确保DOM已更新
+      setTimeout(() => {
+        // 选中相应的元素
+        const element = document.getElementById(`element-${newItem.id}`);
+        if (element) {
+          element.classList.add('selected');
+        }
+        
+        // 选中相应的轨道项目
+        const trackElement = document.querySelector(`[data-track-item-id="${newItem.id}"]`);
+        if (trackElement) {
+          trackElement.classList.add('selected');
+        }
+        
+        // 选中整个轨道
+        const trackRow = document.querySelector(`[data-track-id="${newTextTrack.id}"]`);
+        if (trackRow) {
+          // 移除其他轨道的选中状态
+          document.querySelectorAll('.track.selected').forEach(el => {
+            if (el.getAttribute('data-track-id') !== newTextTrack.id) {
+              el.classList.remove('selected');
+            }
+          });
+          
+          // 添加选中状态
+          trackRow.classList.add('selected');
+          
+          // 自动滚动到该轨道
+          const trackContainer = document.querySelector('.timeline');
+          if (trackContainer) {
+            trackContainer.scrollTop = trackRow.offsetTop - trackContainer.offsetTop;
+          }
+        }
+      }, 100);
 
       message.success('成功添加气泡文本');
       return;
@@ -293,9 +388,7 @@ const VideoEdit = () => {
       
       // 如果轨道是收起状态，展开它
       if (isTimelineCollapsed) {
-        setIsTimelineCollapsed(false);
-        // 调整时间轴高度
-        setTimelineHeight(200);
+        handleToggleTracks(false); // 使用强制展开
       }
 
       // 获取视频轨道和视频时长
@@ -367,7 +460,9 @@ const VideoEdit = () => {
           itemId: newItem.id,
           trackId: backgroundTrack ? backgroundTrack.id : `background-track-${Date.now()}`,
           type: trackType,
-          item: newItem
+          item: newItem,
+          expandTimeline: true,
+          forceSelectTrack: true
         }
       });
       document.dispatchEvent(trackSelectEvent);
@@ -384,9 +479,7 @@ const VideoEdit = () => {
 
     // 如果轨道是收起状态，展开它
     if (isTimelineCollapsed) {
-      setIsTimelineCollapsed(false);
-      // 调整时间轴高度
-      setTimelineHeight(200);
+      handleToggleTracks(false); // 使用强制展开
     }
 
     // 获取对应类型
@@ -495,7 +588,9 @@ const VideoEdit = () => {
         itemId: newItem.id,
         trackId: newTrack.id,
         type: trackType,
-        item: newItem
+        item: newItem,
+        expandTimeline: true,
+        forceSelectTrack: true
       }
     });
     document.dispatchEvent(trackSelectEvent);
@@ -506,7 +601,9 @@ const VideoEdit = () => {
         itemId: newItem.id,
         trackId: newTrack.id,
         type: trackType,
-        item: newItem
+        item: newItem,
+        expandTimeline: true,
+        forceSelectTrack: true
       }
     });
     document.dispatchEvent(previewSelectEvent);
@@ -519,16 +616,38 @@ const VideoEdit = () => {
     
     // 延迟一下确保 DOM 已更新
     setTimeout(() => {
+      // 选中相应的轨道元素
       const element = document.getElementById(`element-${newItem.id}`);
       if (element) {
         element.classList.add('selected');
       }
       
+      // 选中相应的轨道项目
       const trackElement = document.querySelector(`[data-track-item-id="${newItem.id}"]`);
       if (trackElement) {
         trackElement.classList.add('selected');
       }
-    }, 0);
+      
+      // 选中整个轨道
+      const trackRow = document.querySelector(`[data-track-id="${newTrack.id}"]`);
+      if (trackRow) {
+        // 移除其他轨道的选中状态
+        document.querySelectorAll('.track.selected').forEach(el => {
+          if (el.getAttribute('data-track-id') !== newTrack.id) {
+            el.classList.remove('selected');
+          }
+        });
+        
+        // 添加选中状态
+        trackRow.classList.add('selected');
+        
+        // 自动滚动到该轨道
+        const trackContainer = document.querySelector('.timeline');
+        if (trackContainer) {
+          trackContainer.scrollTop = trackRow.offsetTop - trackContainer.offsetTop;
+        }
+      }
+    }, 100);
     
     message.success(`成功添加${type === 'video' ? '视频' : type === 'image' ? '贴图' : type === 'audio' ? '音频' : '文本'}素材`);
   };
@@ -574,17 +693,19 @@ const VideoEdit = () => {
   }, [isDraggingTimeline, handleTimelineResize, handleTimelineResizeEnd]);
 
   // 处理轨道收起展开
-  const handleToggleTracks = () => {
-    const newCollapsed = !isTimelineCollapsed;
+  const handleToggleTracks = (forceState) => {
+    // 如果提供了强制状态，使用它，否则切换当前状态
+    const newCollapsed = forceState !== undefined ? forceState : !isTimelineCollapsed;
     
     // 如果是从收起状态展开
     if (newCollapsed === false) {
       console.log('展开轨道区域, 当前选中视频ID:', selectedVideoId);
 
-      if (tracks.length === 0) {
-        message.warning('请先添加素材再展开轨道');
-        return;
-      }
+      // 注释掉这个检查，允许展开轨道区域即使没有素材
+      // if (tracks.length === 0) {
+      //   message.warning('请先添加素材再展开轨道');
+      //   return;
+      // }
       
       // 如果有选中的视频ID且在areaTrackMap中有对应的轨道数据
       if (selectedVideoId && areaTrackMap[selectedVideoId]) {
@@ -743,16 +864,24 @@ const VideoEdit = () => {
     }
     
     // 创建更新后的轨道数据
-    let updatedTracks = tracks.map(track => {
-      if (track.id === trackId) {
-        // 从轨道中删除该项目
-        return {
-          ...track,
-          items: track.items.filter(item => item.id !== itemId)
-        };
-      }
-      return track;
-    });
+    let updatedTracks;
+    
+    // 对于文本轨道，删除该轨道及其所有项目
+    if (targetTrack.type === TRACK_TYPES.TEXT) {
+      updatedTracks = tracks.filter(track => track.id !== trackId);
+    } else {
+      // 对于其他类型轨道，仅删除特定项目
+      updatedTracks = tracks.map(track => {
+        if (track.id === trackId) {
+          // 从轨道中删除该项目
+          return {
+            ...track,
+            items: track.items.filter(item => item.id !== itemId)
+          };
+        }
+        return track;
+      });
+    }
 
     // 过滤掉空轨道（除了视频轨道）
     updatedTracks = updatedTracks.filter(track => {
@@ -900,10 +1029,53 @@ const VideoEdit = () => {
     return activeVideoItems[0].src;
   };
 
-  // Handle seeking in the timeline
-  const handleSeek = (time) => {
-    setCurrentTime(time);
-  };
+  // 添加处理播放/暂停的函数
+  const handlePlay = useCallback(() => {
+    console.log('开始播放');
+    setIsPlaying(true);
+    // 确保视频预览组件开始播放
+    const videoPreview = document.querySelector('.preview-video');
+    if (videoPreview) {
+      videoPreview.play().catch(error => {
+        console.warn('视频播放失败:', error);
+        setIsPlaying(false);
+      });
+    }
+  }, []);
+
+  const handlePause = useCallback(() => {
+    console.log('暂停播放');
+    setIsPlaying(false);
+    // 确保视频预览组件暂停
+    const videoPreview = document.querySelector('.preview-video');
+    if (videoPreview) {
+      videoPreview.pause();
+    }
+  }, []);
+
+  // 处理视频预览组件的时间变化
+  const handleSeek = useCallback((time) => {
+    if (typeof time !== 'number' || isNaN(time)) {
+      console.warn('无效的时间值:', time);
+      return;
+    }
+    
+    // 计算有效的时间，确保在合理范围内
+    const validTime = Math.max(0, parseFloat(time.toFixed(2)));
+    setCurrentTime(validTime);
+  }, []);
+
+  // 监听播放状态变化
+  useEffect(() => {
+    // 记录状态变化
+    console.log('播放状态变化:', isPlaying ? '播放' : '暂停');
+  }, [isPlaying]);
+
+  // 监听当前时间变化
+  useEffect(() => {
+    // 记录时间变化
+    console.log('当前时间变化:', currentTime.toFixed(2));
+  }, [currentTime]);
 
   // 在 VideoEdit 组件内添加新的状态
   const [showSubtitle, setShowSubtitle] = useState(true);
@@ -919,8 +1091,9 @@ const VideoEdit = () => {
   const updateElementEditingState = (item) => {
     if (!item) return;
     
-    // 设置透明度
-    setElementOpacity(item.opacity ? item.opacity * 100 : 100);
+    // 设置透明度 - 确保保留原始值
+    const opacityValue = item.opacity !== undefined ? item.opacity : 1;
+    setElementOpacity(Math.round((1 - opacityValue) * 100));
     
     // 设置旋转角度
     setElementRotation(item.rotation || 0);
@@ -956,8 +1129,12 @@ const VideoEdit = () => {
     // 根据属性类型更新元素
     switch (property) {
       case 'opacity':
-        // 直接使用传入的 opacity 值，因为在 EditPanel 中已经做了转换
+        // 直接使用传入的 opacity 值，确保在拖拽和选择时保留
         updatedItem.opacity = value;
+        // 如果存在originalOpacity，也更新它以确保一致性
+        if (updatedItem.originalOpacity !== undefined) {
+          updatedItem.originalOpacity = value;
+        }
         break;
       case 'rotation':
         updatedItem.rotation = value;
@@ -997,23 +1174,28 @@ const VideoEdit = () => {
     // 创建新的轨道数据
     const newTracks = [...tracks];
     
+    // 获取当前项目以获取其原始opacity值
+    const currentItem = newTracks[trackIndex].items[itemIndex];
+    
     // 保留现有属性，只更新拖拽、缩放、旋转相关属性
     newTracks[trackIndex].items[itemIndex] = {
-      ...newTracks[trackIndex].items[itemIndex],
+      ...currentItem,
       x: updatedItem.x,
       y: updatedItem.y,
       width: updatedItem.width,
       height: updatedItem.height,
       rotation: updatedItem.rotation,
       scale: updatedItem.scale,
-      opacity: updatedItem.opacity
+      // 确保正确保留opacity
+      opacity: updatedItem.opacity !== undefined ? updatedItem.opacity : 
+              (updatedItem.originalOpacity !== undefined ? updatedItem.originalOpacity : currentItem.opacity)
     };
     
     // 更新轨道数据
     handleTrackChange(newTracks);
     
     // 更新编辑状态
-    updateElementEditingState(updatedItem);
+    updateElementEditingState(newTracks[trackIndex].items[itemIndex]);
   };
 
   // 添加回被误删的函数
@@ -1117,18 +1299,9 @@ const VideoEdit = () => {
                   tracks={tracks}
                   currentTime={currentTime}
                   isPlaying={isPlaying}
-                  onPlay={() => {
-                    console.log('Play requested');
-                    setIsPlaying(true);
-                  }}
-                  onPause={() => {
-                    console.log('Pause requested');
-                    setIsPlaying(false);
-                  }}
-                  onSeek={(time) => {
-                    console.log('Seek to:', time);
-                    handleSeek(time);
-                  }}
+                  onPlay={handlePlay}
+                  onPause={handlePause}
+                  onSeek={handleSeek}
                   onItemSelect={handleItemSelect}
                   onItemChange={handlePreviewItemChange}
                 />
@@ -1179,6 +1352,8 @@ const VideoEdit = () => {
               selectedVideoId={selectedVideoId}
               onSelectedVideoIdChange={handleSelectedVideoIdChange}
               onDeleteItem={handleDeleteItem}
+              isPlaying={isPlaying}
+              currentTime={currentTime}
             />
           </div>
         </div>

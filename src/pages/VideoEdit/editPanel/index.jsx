@@ -166,28 +166,47 @@ const EditPanel = ({
   // 当选中的元素变化时，更新当前界面的样式设置
   useEffect(() => {
     if (selectedTrackItem && selectedTrackItem.type === trackTypes.TEXT) {
-      // 重置预设的激活状态
-      setActivePreset('');
-      
-      // 从元素中提取文本样式
       const textStyle = selectedTrackItem.textStyle || {};
       
-      // 更新各个状态
+      // 设置其他文本样式属性
+      setElementTextContent(selectedTrackItem.content || '');
       setIsBold(textStyle.fontWeight === 'bold');
       setIsItalic(textStyle.fontStyle === 'italic');
-      setTextAlign(textStyle.textAlign || 'left');
+      setTextAlign(textStyle.textAlign || 'center');
       setFontFamily(textStyle.fontFamily || 'MiSans');
+      setElementTextColor(textStyle.color || '#FFFFFF');
+      setElementTextSize(textStyle.fontSize || 24);
       setLetterSpacing(textStyle.letterSpacing || 0);
       setLineSpacing(textStyle.lineHeight || 0);
       setBorderWidth(textStyle.borderWidth || 0);
       setBorderColor(textStyle.borderColor || '#2A7FFB');
       setTextShadow(textStyle.textShadow || '2px 2px 4px rgba(0,0,0,0.5)');
       
-      // 设置透明度滑块值：将不透明度转换为透明度百分比
-      const opacity = selectedTrackItem.opacity ?? 1;
-      setElementOpacity((1 - opacity) * 100);
+      // 修复透明度计算
+      const opacity = selectedTrackItem.opacity !== undefined ? selectedTrackItem.opacity : 1;
+      // 将不透明度(0-1)转换为透明度百分比(0-100)，确保精确计算
+      setElementOpacity(Math.round((1 - opacity) * 100));
     }
-  }, [selectedTrackItem, trackTypes.TEXT]);
+    else if (selectedTrackItem && 
+      (selectedTrackItem.type === trackTypes.IMAGE || 
+       selectedTrackItem.type === trackTypes.BACKGROUND)) {
+      // 修复透明度计算，确保初始化为0%
+      const opacity = selectedTrackItem.opacity !== undefined ? selectedTrackItem.opacity : 1;
+      // 将不透明度(0-1)转换为透明度百分比(0-100)
+      setElementOpacity(Math.round((1 - opacity) * 100));
+    }
+  }, [selectedTrackItem, trackTypes.TEXT, trackTypes.IMAGE, trackTypes.BACKGROUND, setElementOpacity]);
+
+  // 添加单独监听opacity属性变化的hook，确保在拖拽时透明度显示正确
+  useEffect(() => {
+    if (selectedTrackItem && selectedTrackItem.opacity !== undefined) {
+      // 将不透明度(0-1)转换为透明度百分比(0-100)
+      const opacityValue = Math.round((1 - selectedTrackItem.opacity) * 100);
+      if (opacityValue !== elementOpacity) {
+        setElementOpacity(opacityValue);
+      }
+    }
+  }, [selectedTrackItem?.opacity, setElementOpacity, elementOpacity]);
 
   // 处理预设样式点击
   const handlePresetClick = (preset) => {
@@ -380,15 +399,17 @@ const EditPanel = ({
             className="custom-slider"
             value={elementOpacity} 
             onChange={(value) => {
-              setElementOpacity(value);
+              // 确保值是整数
+              const roundedValue = Math.round(value);
+              setElementOpacity(roundedValue);
               // 将透明度百分比转换为不透明度值
-              handleElementPropertyChange('opacity', 1 - (value / 100));
+              handleElementPropertyChange('opacity', 1 - (roundedValue / 100));
             }}
             min={0}
             max={100}
             defaultValue={0}
             tooltip={{
-              formatter: (value) => `${value}%`
+              formatter: (value) => `${Math.round(value)}%`
             }}
           />
         </div>
@@ -628,29 +649,36 @@ const EditPanel = ({
             className="custom-slider"
             value={elementOpacity} 
             onChange={(value) => {
-              setElementOpacity(value);
+              // 确保值是整数
+              const roundedValue = Math.round(value);
+              setElementOpacity(roundedValue);
               // 将透明度百分比转换为不透明度值
-              handleElementPropertyChange('opacity', 1 - (value / 100));
+              handleElementPropertyChange('opacity', 1 - (roundedValue / 100));
             }}
             min={0}
             max={100}
+            defaultValue={0}
+            tooltip={{
+              formatter: (value) => `${Math.round(value)}%`
+            }}
           />
         </div>
         
         <div className="setting-group">
           <div className="setting-header">
             <span className="setting-label">旋转角度</span>
-            <span className="setting-value">{elementRotation}°</span>
+            <span className="setting-value">{Math.round(elementRotation)}°</span>
           </div>
           <Slider 
             className="custom-slider"
-            value={elementRotation} 
+            value={Math.round(elementRotation)} 
             onChange={(value) => {
               setElementRotation(value);
               handleElementPropertyChange('rotation', value);
             }}
             min={0}
             max={360}
+            step={1}
           />
         </div>
       </div>
@@ -732,18 +760,24 @@ const EditPanel = ({
         <div className="setting-group">
           <div className="setting-header">
             <span className="setting-label">透明度</span>
-            <span className="setting-value">{100 - elementOpacity}%</span>
+            <span className="setting-value">{elementOpacity}%</span>
           </div>
           <Slider 
             className="custom-slider"
             value={elementOpacity} 
             onChange={(value) => {
-              setElementOpacity(value);
-              handleElementPropertyChange('opacity', 1 - value / 100);
+              // 确保值是整数
+              const roundedValue = Math.round(value);
+              setElementOpacity(roundedValue);
+              // 将透明度百分比转换为不透明度值
+              handleElementPropertyChange('opacity', 1 - (roundedValue / 100));
             }}
             min={0}
             max={100}
-            tipFormatter={value => `${100 - value}%`}
+            defaultValue={0}
+            tooltip={{
+              formatter: (value) => `${Math.round(value)}%`
+            }}
           />
         </div>
 
