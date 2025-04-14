@@ -25,6 +25,8 @@ const TextElement = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState(null);
+  const elementRef = useRef(null);
+  const textContentRef = useRef(null);
   
   // 计算位置和尺寸
   const baseWidth = containerSize.width * (zoomLevel / 100);
@@ -46,6 +48,104 @@ const TextElement = ({
     e.stopPropagation();
     onSelect?.(item);
   };
+
+  // 监听文本内容大小变化
+  useEffect(() => {
+    if (!elementRef.current || !textContentRef.current || !isSelected) return;
+    
+    // 创建MutationObserver监听文本内容变化
+    const textObserver = new MutationObserver(() => {
+      if (textContentRef.current && elementRef.current) {
+        // 获取文本内容元素的尺寸
+        const textRect = textContentRef.current.getBoundingClientRect();
+        const elementRect = elementRef.current.getBoundingClientRect();
+        
+        // 如果尺寸有差异，调整外层元素
+        if (Math.abs(textRect.width - elementRect.width) > 2 || 
+            Math.abs(textRect.height - elementRect.height) > 2) {
+          
+          // 强制刷新选中框效果
+          requestAnimationFrame(() => {
+            if (elementRef.current) {
+              // 先移除选中类
+              elementRef.current.classList.remove('selected');
+              
+              // 再添加回来触发重新计算
+              setTimeout(() => {
+                if (elementRef.current) {
+                  elementRef.current.classList.add('selected');
+                }
+              }, 0);
+            }
+          });
+        }
+      }
+    });
+    
+    // 配置观察选项
+    const config = { 
+      characterData: true, 
+      childList: true, 
+      subtree: true,
+      attributes: true
+    };
+    
+    // 开始观察
+    textObserver.observe(textContentRef.current, config);
+    
+    // 创建ResizeObserver监听文本内容大小变化
+    const resizeObserver = new ResizeObserver(entries => {
+      // 处理大小变化
+      if (textContentRef.current && elementRef.current) {
+        // 强制刷新选中框，确保它适应新的内容尺寸
+        elementRef.current.classList.remove('selected');
+        requestAnimationFrame(() => {
+          if (elementRef.current) {
+            elementRef.current.classList.add('selected');
+          }
+        });
+      }
+    });
+    
+    // 同时监听文本内容元素的大小变化
+    resizeObserver.observe(textContentRef.current);
+    
+    // 清理函数
+    return () => {
+      textObserver.disconnect();
+      resizeObserver.disconnect();
+    };
+  }, [isSelected, item.content, item.textStyle]);
+
+  // 监听文本元素大小变化
+  useEffect(() => {
+    if (!elementRef.current || !isSelected) return;
+    
+    // 创建ResizeObserver监听元素大小变化
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        // 元素大小变化时，强制更新选中框
+        if (entry.target.classList.contains('selected')) {
+          // 通过移除再添加selected类，触发重新应用样式
+          entry.target.classList.remove('selected');
+          // 使用setTimeout确保DOM有时间更新
+          setTimeout(() => {
+            if (elementRef.current) {
+              elementRef.current.classList.add('selected');
+            }
+          }, 0);
+        }
+      }
+    });
+    
+    // 开始监听
+    resizeObserver.observe(elementRef.current);
+    
+    // 清理函数
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isSelected]);
 
   // 处理拖拽开始
   const handleDragStart = (e) => {
@@ -242,14 +342,6 @@ const TextElement = ({
     }
   }, [isSelected, item]);
 
-  // 图片样式
-  const imageStyle = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    borderRadius: '4px'
-  };
-
   // 文本样式
   const textStyle = {
     color: item.textStyle?.color || '#FFFFFF',
@@ -267,6 +359,13 @@ const TextElement = ({
     padding: '8px',
     borderRadius: '4px',
     backgroundColor: 'rgba(0, 0, 0, 0.3)'
+  };
+
+  const imageStyle = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    borderRadius: '4px'
   };
 
   const handleRotateStart = (e, item) => {
@@ -479,6 +578,7 @@ const TextElement = ({
 
   return (
     <div 
+      ref={elementRef}
       id={`element-${item.id}`}
       className={`text-element ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
       style={{
@@ -512,7 +612,7 @@ const TextElement = ({
     >
       {/* 渲染实际内容 */}
       {item.type === TRACK_TYPES.TEXT ? (
-        <div className="text-content" style={textStyle}>
+        <div className="text-content" ref={textContentRef} style={textStyle}>
           {item.content}
         </div>
       ) : item.type === TRACK_TYPES.IMAGE ? (
@@ -562,6 +662,7 @@ const ImageElement = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState(null);
+  const elementRef = useRef(null); // 添加引用
   
   // 计算实际元素位置时考虑容器的9:16比例
   const x = (item.x / 100) * containerSize.width;
@@ -573,6 +674,36 @@ const ImageElement = ({
   
   const width = (itemWidth / 100) * containerSize.width;
   const height = (itemHeight / 100) * containerSize.height;
+
+  // 监听图片元素大小变化
+  useEffect(() => {
+    if (!elementRef.current || !isSelected) return;
+    
+    // 创建ResizeObserver监听元素大小变化
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        // 元素大小变化时，强制更新选中框
+        if (entry.target.classList.contains('selected')) {
+          // 通过移除再添加selected类，触发重新应用样式
+          entry.target.classList.remove('selected');
+          // 使用setTimeout确保DOM有时间更新
+          setTimeout(() => {
+            if (elementRef.current) {
+              elementRef.current.classList.add('selected');
+            }
+          }, 0);
+        }
+      }
+    });
+    
+    // 开始监听
+    resizeObserver.observe(elementRef.current);
+    
+    // 清理函数
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isSelected]);
 
   // 处理拖拽开始
   const handleDragStart = (e) => {
@@ -751,356 +882,6 @@ const ImageElement = ({
     document.addEventListener('mouseup', onMouseUp);
   };
 
-  // 处理旋转开始
-  const handleRotateStart = (e, item) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // 获取元素的中心点
-    const element = document.getElementById(`element-${item.id}`);
-    if (!element) return;
-    
-    const rect = element.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
-    
-    // 计算相对于容器的中心点
-    const centerX = rect.left - containerRect.left + rect.width / 2;
-    const centerY = rect.top - containerRect.top + rect.height / 2;
-    
-    const startAngle = Math.atan2(
-      e.clientY - (containerRect.top + centerY),
-      e.clientX - (containerRect.left + centerX)
-    );
-    
-    const startRotation = item.rotation || 0;
-    
-    // 创建一个透明覆盖层，捕获所有鼠标事件
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
-    overlay.style.zIndex = '9999';
-    overlay.style.cursor = 'crosshair';
-    document.body.appendChild(overlay);
-    
-    // 创建参考线容器
-    const guideLinesContainer = document.createElement('div');
-    guideLinesContainer.style.position = 'fixed';
-    guideLinesContainer.style.top = '0';
-    guideLinesContainer.style.left = '0';
-    guideLinesContainer.style.width = '100vw';
-    guideLinesContainer.style.height = '100vh';
-    guideLinesContainer.style.zIndex = '9998';
-    guideLinesContainer.style.pointerEvents = 'none';
-    document.body.appendChild(guideLinesContainer);
-
-    // 创建参考线
-    const createGuideLine = (angle, isCenter = false) => {
-      const line = document.createElement('div');
-      line.style.position = 'absolute';
-      line.style.top = `${containerRect.top + centerY}px`;
-      line.style.left = `${containerRect.left + centerX}px`;
-      line.style.width = '300px';
-      line.style.height = '2px';
-      line.style.backgroundColor = isCenter ? 'rgba(76, 175, 80, 0.7)' : 'rgba(76, 175, 80, 0.4)';
-      line.style.transform = `rotate(${angle}deg) translateX(-50%)`;
-      line.style.transformOrigin = 'left center';
-      guideLinesContainer.appendChild(line);
-    };
-
-    // 添加所有参考线
-    [0, 45, 90, 135].forEach(angle => createGuideLine(angle, angle === 0));
-    
-    const onMouseMove = (moveEvent) => {
-      moveEvent.preventDefault();
-      moveEvent.stopPropagation();
-      
-      // 重新计算元素中心点（因为元素可能移动）
-      const element = document.getElementById(`element-${item.id}`);
-      if (!element) return;
-      
-      const updatedRect = element.getBoundingClientRect();
-      const updatedCenterX = updatedRect.left - containerRect.left + updatedRect.width / 2;
-      const updatedCenterY = updatedRect.top - containerRect.top + updatedRect.height / 2;
-      
-      // 更新参考线位置
-      const lines = guideLinesContainer.querySelectorAll('div');
-      lines.forEach(line => {
-        line.style.top = `${containerRect.top + updatedCenterY}px`;
-        line.style.left = `${containerRect.left + updatedCenterX}px`;
-      });
-      
-      const currentAngle = Math.atan2(
-        moveEvent.clientY - (containerRect.top + updatedCenterY),
-        moveEvent.clientX - (containerRect.left + updatedCenterX)
-      );
-      
-      // 增加旋转灵敏度，通过乘以系数
-      let rotation = startRotation + (currentAngle - startAngle) * (180 / Math.PI) * 1.5;
-      
-      // 限制旋转角度在 -180 到 180 度之间
-      const normalizedRotation = ((rotation % 360) + 360) % 360;
-      const boundedRotation = normalizedRotation > 180 ? normalizedRotation - 360 : normalizedRotation;
-      
-      // 基准线吸附功能
-      const snapPoints = [0, 45, 90, 135, 180, 225, 270, 315];
-      const snapThreshold = 8; // 增加吸附阈值
-      
-      let snapped = false;
-      let lastSnappedValue = null;
-      for (const snapPoint of snapPoints) {
-        const diff = Math.abs(boundedRotation - snapPoint);
-        if (diff <= snapThreshold) {
-          // 如果是新的吸附点，添加震动反馈
-          if (lastSnappedValue !== snapPoint) {
-            if ('vibrate' in navigator) {
-              navigator.vibrate(20); // 短暂震动提示
-            }
-            lastSnappedValue = snapPoint;
-          }
-          
-          // 应用吸附
-          rotation = snapPoint;
-          snapped = true;
-          
-          // 高亮显示当前吸附的参考线
-          lines.forEach(line => {
-            // 将所有线条恢复为普通状态
-            line.style.backgroundColor = 'rgba(76, 175, 80, 0.4)';
-            line.style.height = '2px';
-            
-            // 高亮匹配的参考线
-            const lineAngle = parseInt(line.style.transform.match(/rotate\((\d+)deg\)/)?.[1] || '0');
-            // 处理等效角度
-            const normalizedLineAngle = lineAngle % 180;
-            const normalizedSnapPoint = snapPoint % 180;
-            
-            if (normalizedLineAngle === normalizedSnapPoint || 
-                (snapPoint % 180 === 0 && lineAngle === 0) || 
-                (snapPoint % 180 === 90 && lineAngle === 90) || 
-                (snapPoint % 180 === 45 && lineAngle === 45) || 
-                (snapPoint % 180 === 135 && lineAngle === 135)) {
-              line.style.backgroundColor = 'rgba(76, 175, 80, 1)';
-              line.style.height = '3px';
-              line.style.boxShadow = '0 0 6px rgba(76, 175, 80, 0.9)';
-              
-              // 使对齐线稍微闪烁以增强视觉反馈
-              setTimeout(() => {
-                if (line && line.parentNode) {
-                  line.style.backgroundColor = 'rgba(255, 238, 88, 1)';
-                  line.style.boxShadow = '0 0 8px rgba(255, 238, 88, 0.9)';
-                  
-                  setTimeout(() => {
-                    if (line && line.parentNode) {
-                      line.style.backgroundColor = 'rgba(76, 175, 80, 1)';
-                      line.style.boxShadow = '0 0 6px rgba(76, 175, 80, 0.9)';
-                    }
-                  }, 150);
-                }
-              }, 0);
-            }
-          });
-          
-          break;
-        }
-      }
-      
-      // 如果没有吸附，恢复所有线条为普通状态，并重置lastSnappedValue
-      if (!snapped) {
-        lastSnappedValue = null;
-        lines.forEach(line => {
-          const isCenter = line.style.transform.includes('rotate(0deg)');
-          line.style.backgroundColor = isCenter ? 'rgba(76, 175, 80, 0.7)' : 'rgba(76, 175, 80, 0.4)';
-          line.style.height = '2px';
-          line.style.boxShadow = 'none';
-        });
-      }
-      
-      // 使用 CSS3 transform 实现旋转，保持中心点不变
-      if (element) {
-        // 保持元素在容器中的相对位置
-        const x = (item.x / 100) * containerSize.width;
-        const y = (item.y / 100) * containerSize.height;
-        
-        element.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.webkitTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.MozTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.msTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-        element.style.OTransform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${boundedRotation}deg) scale(${item.scale || 1})`;
-      }
-      
-      onChange?.({
-        ...item,
-        rotation: boundedRotation
-      });
-    };
-    
-    const onMouseUp = (upEvent) => {
-      upEvent.preventDefault();
-      upEvent.stopPropagation();
-      
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      
-      // 移除覆盖层和参考线
-      document.body.removeChild(overlay);
-      document.body.removeChild(guideLinesContainer);
-      
-      // 确保元素仍然被选中
-      setTimeout(() => {
-        if (item) {
-          onSelect?.(item);
-        }
-      }, 50);
-    };
-    
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
-
-  // 处理缩放开始
-  const handleResizeStart = (e, corner) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // 确保元素被选中
-    onSelect?.(item);
-    
-    // 获取元素的当前尺寸和位置
-    const elementId = `element-${item.id}`;
-    const element = document.getElementById(elementId);
-    let elementRect;
-    
-    if (element) {
-      elementRect = element.getBoundingClientRect();
-    }
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    
-    const startData = {
-      corner,
-      startX: e.clientX,
-      startY: e.clientY,
-      startWidth: item.width || 20,
-      startHeight: item.height || 20,
-      startScale: item.scale || 1,
-      elementRect,
-      containerRect
-    };
-    
-    console.log('缩放开始:', startData);
-    // ImageElement不应该访问VideoPreview的状态
-    // setResizeStart(startData);
-
-    // 创建一个透明覆盖层，捕获所有鼠标事件
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
-    overlay.style.zIndex = '9999';
-    overlay.style.cursor = `${corner}-resize`; // 会根据角落自动改变
-    document.body.appendChild(overlay);
-
-    const onMouseMove = (moveEvent) => {
-      moveEvent.preventDefault();
-      moveEvent.stopPropagation();
-      
-      if (!startData || !item) return;
-      
-      // 获取容器的边界
-      const rect = containerRef.current.getBoundingClientRect();
-      
-      // 计算在容器内的相对位置变化（以百分比形式）
-      const deltaXPercent = ((moveEvent.clientX - startData.startX) / rect.width) * 100;
-      const deltaYPercent = ((moveEvent.clientY - startData.startY) / rect.height) * 100;
-      
-      let newWidth = startData.startWidth || 20;
-      let newHeight = startData.startHeight || 20;
-      
-      // 根据不同角落调整大小
-      switch (startData.corner) {
-        case 'se': // 右下角
-          newWidth = Math.max(5, startData.startWidth + deltaXPercent);
-          newHeight = Math.max(5, startData.startHeight + deltaYPercent);
-          overlay.style.cursor = 'se-resize';
-          break;
-        case 'sw': // 左下角
-          newWidth = Math.max(5, startData.startWidth - deltaXPercent);
-          newHeight = Math.max(5, startData.startHeight + deltaYPercent);
-          overlay.style.cursor = 'sw-resize';
-          break;
-        case 'ne': // 右上角
-          newWidth = Math.max(5, startData.startWidth + deltaXPercent);
-          newHeight = Math.max(5, startData.startHeight - deltaYPercent);
-          overlay.style.cursor = 'ne-resize';
-          break;
-        case 'nw': // 左上角
-          newWidth = Math.max(5, startData.startWidth - deltaXPercent);
-          newHeight = Math.max(5, startData.startHeight - deltaYPercent);
-          overlay.style.cursor = 'nw-resize';
-          break;
-      }
-      
-      console.log('New dimensions:', { newWidth, newHeight });
-      
-      // 所有元素类型都应用尺寸调整和缩放
-      const scaleFactor = newWidth / startData.startWidth;
-      
-      // 记录当前选中的元素ID，用于防止状态丢失
-      const currentSelectedId = item.id;
-      
-      // 更新元素
-      const updatedItem = {
-        ...item,
-        width: newWidth,
-        height: newHeight,
-        scale: Math.max(0.1, startData.startScale * scaleFactor)
-      };
-      
-      onChange?.(updatedItem);
-      
-      // 确保选中状态不会丢失
-      setTimeout(() => {
-        if (currentSelectedId !== item.id) {
-          // 如果选中状态已丢失，重新设置
-          onSelect?.(updatedItem);
-        }
-      }, 0);
-      
-      console.log('Element resize:', { 
-        type: item.type,
-        scale: updatedItem.scale,
-        width: updatedItem.width, 
-        height: updatedItem.height 
-      });
-    };
-    
-    const onMouseUp = (upEvent) => {
-      upEvent.preventDefault();
-      upEvent.stopPropagation();
-      
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      
-      // 移除覆盖层
-      document.body.removeChild(overlay);
-      
-      // 确保元素仍然被选中
-      setTimeout(() => {
-        if (item) {
-          onSelect?.(item);
-        }
-      }, 50);
-    };
-    
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
-
   // 当元素被选中时，触发轨道项目选择
   useEffect(() => {
     if (isSelected) {
@@ -1155,6 +936,7 @@ const ImageElement = ({
 
   return (
     <div 
+      ref={elementRef} // 添加引用
       id={`element-${item.id}`}
       className={`image-element ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
       style={{
