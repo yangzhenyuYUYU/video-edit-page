@@ -187,6 +187,7 @@
         height: auto !important;
         min-width: 30px;
         min-height: 30px;
+        position: absolute;
         
         .text-content {
           position: relative;
@@ -206,6 +207,29 @@
           max-height: 100%;
           box-sizing: border-box;
           margin: 0 auto;
+        }
+
+        // 气泡文本容器样式
+        .bubble-text-container {
+          border-radius: 8px;
+          overflow: hidden;
+          
+          .bubble-background {
+            border-radius: 8px;
+          }
+          
+          .bubble-images {
+            .bubble-image {
+              border-radius: 4px;
+            }
+          }
+          
+          .text-content {
+            background-color: transparent;
+            border-radius: 0;
+            margin: 0;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+          }
         }
 
         &.selected {

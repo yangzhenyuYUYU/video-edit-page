@@ -149,7 +149,11 @@ const VideoEdit = () => {
 
   // 处理素材点击
   const handleMaterialClick = (type, content) => {
-    // 如果是视频类型，允许直接添加（因为这会创建新的区域片段）
+    if (!type || !content) {
+      message.error('素材类型或内容不能为空');
+      return;
+    }
+    
     if (type === 'video') {
       // 获取对应类型
       const trackType = TRACK_TYPES.VIDEO;
@@ -284,6 +288,23 @@ const VideoEdit = () => {
           width: content.width || 300,
           height: content.height || 200
         };
+        
+        // 确保结构化数据完整
+        if (content.struct) {
+          // 保留原始的背景信息和文本信息
+          const backgroundInfo = content.struct.backgroundInfo || {};
+          
+          // 确保 backgroundInfo.images 存在
+          if (backgroundInfo.images && Object.keys(backgroundInfo.images).length > 0) {
+            newItem.bubbleStyle.struct = {
+              ...content.struct,
+              backgroundInfo: {
+                ...backgroundInfo,
+                backgroundColor: backgroundInfo.backgroundColor || '#808080'
+              }
+            };
+          }
+        }
       }
 
       // 为每个文本元素创建独立的轨道，而不是复用现有轨道
