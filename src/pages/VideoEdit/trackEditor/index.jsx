@@ -748,65 +748,34 @@ const TrackEditor = ({
           // 滚动到该项目位置
           scrollToItem(detail.trackId, detail.itemId);
           
-          // 如果需要强制选中轨道，添加额外延迟，确保DOM更新后再应用样式
-          if (detail.forceSelectTrack) {
-            setTimeout(() => {
-              // 高亮显示整个轨道
-              const trackRow = document.querySelector(`[data-track-id="${detail.trackId}"]`);
-              if (trackRow) {
-                // 移除其他轨道的选中状态
-                document.querySelectorAll('.track').forEach(el => {
-                  el.classList.remove('selected');
-                });
-                
-                // 添加选中状态，使用!important增加优先级
-                trackRow.setAttribute('style', 'background-color: rgba(24, 144, 255, 0.15) !important');
-                trackRow.classList.add('selected');
-                
-                // 确保轨道在视图中
-                trackRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-            }, 200);
-          }
-          
-          // 高亮显示轨道项目
-          const trackItem = document.querySelector(`[data-item-id="${detail.itemId}"]`);
-          if (trackItem) {
-            // 移除其他项目的选中状态
-            document.querySelectorAll('.track-item.selected').forEach(el => {
-              if (el.getAttribute('data-item-id') !== detail.itemId) {
-                el.classList.remove('selected');
-              }
-            });
-            
-            // 添加选中状态
-            trackItem.classList.add('selected');
-          }
-          
-          // 高亮显示整个轨道
-          const trackRow = document.querySelector(`[data-track-id="${detail.trackId}"]`);
-          if (trackRow) {
-            // 移除其他轨道的选中状态
+          // 选中轨道项目，但不选中整个轨道
+          setTimeout(() => {
+            // 移除所有轨道的选中状态
             document.querySelectorAll('.track.selected').forEach(el => {
-              if (el.getAttribute('data-track-id') !== detail.trackId) {
-                el.classList.remove('selected');
-              }
+              el.classList.remove('selected');
             });
             
-            // 添加选中状态
-            trackRow.classList.add('selected');
+            // 确保轨道项目有选中状态
+            const trackItemElement = document.querySelector(`[data-item-id="${detail.itemId}"]`);
+            if (trackItemElement) {
+              trackItemElement.classList.add('selected');
+            }
             
-            // 确保轨道在视图中
-            const timelineContainer = timelineRef.current;
-            if (timelineContainer) {
-              const containerRect = timelineContainer.getBoundingClientRect();
-              const trackRect = trackRow.getBoundingClientRect();
-              
-              if (trackRect.top < containerRect.top || trackRect.bottom > containerRect.bottom) {
-                trackRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 查找轨道元素
+            const trackRow = document.querySelector(`[data-track-id="${detail.trackId}"]`);
+            if (trackRow) {
+              // 确保轨道在视图中
+              const timelineContainer = timelineRef.current;
+              if (timelineContainer) {
+                const containerRect = timelineContainer.getBoundingClientRect();
+                const trackRect = trackRow.getBoundingClientRect();
+                
+                if (trackRect.top < containerRect.top || trackRect.bottom > containerRect.bottom) {
+                  trackRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
               }
             }
-          }
+          }, 50);
         }
       }
     };
@@ -901,7 +870,7 @@ const TrackEditor = ({
         onItemDragEnd={handleItemDragEnd}
         onItemResize={handleItemResize}
         onTrackClick={handleTrackClick}
-        isTrackSelected={selectedTrackId === track.id}
+        isTrackSelected={false}
       />
     ));
   }, [tracks, zoom, isCollapsed, selectedItem, selectedTrackId, getDuration]);

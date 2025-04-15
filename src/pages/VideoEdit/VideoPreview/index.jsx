@@ -228,59 +228,74 @@ const TextElement = ({
       let newX = initialElementX + deltaXPercent;
       let newY = initialElementY + deltaYPercent;
       
-      // 中心点吸附逻辑
-      const centerX = 50; // 容器中心点X (50%)
-      const centerY = 50; // 容器中心点Y (50%)
-      const snapThreshold = 5; // 吸附阈值 (5%)
-      
-      // 检查是否接近中心X坐标
-      if (Math.abs(newX - centerX) < snapThreshold) {
-        newX = centerX; // 吸附到X中心
-        centerGuideVertical.style.opacity = '1'; // 显示垂直参考线
-        centerGuideVertical.style.visibility = 'visible'; // 设置为可见
+      // 获取中心控制点元素
+      const centerHandle = elementRef.current?.querySelector('.resize-handle.center');
+      if (centerHandle) {
+        const handleRect = centerHandle.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
         
-        // 添加吸附动画效果
-        if ('vibrate' in navigator) {
-          navigator.vibrate(10); // 轻微震动提示
+        // 计算中心控制点相对于容器的中心点
+        const handleCenterX = ((handleRect.left + handleRect.width / 2) - containerRect.left) / containerRect.width * 100;
+        const handleCenterY = ((handleRect.top + handleRect.height / 2) - containerRect.top) / containerRect.height * 100;
+        
+        // 中心点吸附逻辑
+        const centerX = 50; // 容器中心点X (50%)
+        const centerY = 50; // 容器中心点Y (50%)
+        const snapThreshold = 5; // 吸附阈值 (5%)
+        
+        // 检查是否接近中心X坐标
+        if (Math.abs(handleCenterX - centerX) < snapThreshold) {
+          // 计算需要调整的偏移量
+          const offsetX = centerX - handleCenterX;
+          newX = initialElementX + deltaXPercent + offsetX;
+          centerGuideVertical.style.opacity = '1'; // 显示垂直参考线
+          centerGuideVertical.style.visibility = 'visible'; // 设置为可见
+          
+          // 添加吸附动画效果
+          if ('vibrate' in navigator) {
+            navigator.vibrate(10); // 轻微震动提示
+          }
+          
+          // 使参考线闪烁以增强视觉反馈
+          centerGuideVertical.animate([
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
+            { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
+          ], {
+            duration: 400,
+            iterations: 1
+          });
+        } else {
+          centerGuideVertical.style.opacity = '0'; // 隐藏垂直参考线
+          centerGuideVertical.style.visibility = 'hidden'; // 设置为不可见
         }
         
-        // 使参考线闪烁以增强视觉反馈
-        centerGuideVertical.animate([
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
-          { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
-        ], {
-          duration: 400,
-          iterations: 1
-        });
-      } else {
-        centerGuideVertical.style.opacity = '0'; // 隐藏垂直参考线
-        centerGuideVertical.style.visibility = 'hidden'; // 设置为不可见
-      }
-      
-      // 检查是否接近中心Y坐标
-      if (Math.abs(newY - centerY) < snapThreshold) {
-        newY = centerY; // 吸附到Y中心
-        centerGuideHorizontal.style.opacity = '1'; // 显示水平参考线
-        centerGuideHorizontal.style.visibility = 'visible'; // 设置为可见
-        
-        // 添加吸附动画效果
-        if ('vibrate' in navigator && centerGuideVertical.style.opacity !== '1') {
-          navigator.vibrate(10); // 轻微震动提示
+        // 检查是否接近中心Y坐标
+        if (Math.abs(handleCenterY - centerY) < snapThreshold) {
+          // 计算需要调整的偏移量
+          const offsetY = centerY - handleCenterY;
+          newY = initialElementY + deltaYPercent + offsetY;
+          centerGuideHorizontal.style.opacity = '1'; // 显示水平参考线
+          centerGuideHorizontal.style.visibility = 'visible'; // 设置为可见
+          
+          // 添加吸附动画效果
+          if ('vibrate' in navigator && centerGuideVertical.style.opacity !== '1') {
+            navigator.vibrate(10); // 轻微震动提示
+          }
+          
+          // 使参考线闪烁以增强视觉反馈
+          centerGuideHorizontal.animate([
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
+            { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
+          ], {
+            duration: 400,
+            iterations: 1
+          });
+        } else {
+          centerGuideHorizontal.style.opacity = '0'; // 隐藏水平参考线
+          centerGuideHorizontal.style.visibility = 'hidden'; // 设置为不可见
         }
-        
-        // 使参考线闪烁以增强视觉反馈
-        centerGuideHorizontal.animate([
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
-          { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
-        ], {
-          duration: 400,
-          iterations: 1
-        });
-      } else {
-        centerGuideHorizontal.style.opacity = '0'; // 隐藏水平参考线
-        centerGuideHorizontal.style.visibility = 'hidden'; // 设置为不可见
       }
       
       // 边界限制
@@ -321,7 +336,12 @@ const TextElement = ({
         }
       }
       
-      console.log('图片拖拽结束');
+      // 确保元素仍然被选中
+      setTimeout(() => {
+        if (item) {
+          onSelect?.(item);
+        }
+      }, 50);
     };
     
     document.addEventListener('mousemove', onMouseMove);
@@ -342,162 +362,307 @@ const TextElement = ({
     }
   }, [isSelected, item]);
 
-  // 判断是否是气泡文本
-  const isBubble = item.bubbleStyle && (item.bubbleStyle.struct || item.bubbleStyle.url);
-  
-  // 获取文本样式
-  const textStyle = item.textStyle || {};
-  
-  // 渲染气泡文本
-  const renderBubbleText = () => {
-    const bubbleStyle = item.bubbleStyle || {};
-    const struct = bubbleStyle.struct || {};
-    const backgroundInfo = struct.backgroundInfo || {};
-    const textInfo = struct.textInfo || {};
+  // 文本样式
+  const textStyle = {
+    color: item.textStyle?.color || '#FFFFFF',
+    fontSize: item.textStyle?.fontSize ? 
+      `${item.textStyle.fontSize * (zoomLevel / 100)}px` : 
+      `${24 * (zoomLevel / 100)}px`,
+    fontFamily: item.textStyle?.fontFamily || 'MiSans',
+    fontWeight: item.textStyle?.fontWeight || 'normal',
+    fontStyle: item.textStyle?.fontStyle || 'normal',
+    textAlign: item.textStyle?.textAlign || 'center',
+    letterSpacing: item.textStyle?.letterSpacing ? `${item.textStyle.letterSpacing}px` : '0',
+    lineHeight: item.textStyle?.lineHeight || 1.5,
+    WebkitTextStroke: item.textStyle?.WebkitTextStroke || 'none',
+    textShadow: item.textStyle?.textShadow || '2px 2px 4px rgba(0,0,0,0.5)',
+    padding: '8px',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)'
+  };
+
+  const imageStyle = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    borderRadius: '4px'
+  };
+
+  const handleRotateStart = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    return (
-      <div 
-        className="bubble-text-container"
-        style={{
-          width: '100%',
-          height: '100%',
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden'
-        }}
-      >
-        {/* 底层：灰色背景 */}
-        <div 
-          className="bubble-background"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: backgroundInfo.backgroundColor || '#808080',
-            zIndex: 1
-          }}
-        />
-        
-        {/* 中层：九宫格图片 */}
-        <div 
-          className="bubble-images"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gridTemplateRows: 'repeat(3, 1fr)',
-            gap: '4px',
-            padding: '8px',
-            zIndex: 2
-          }}
-        >
-          {backgroundInfo.images && Object.entries(backgroundInfo.images).map(([key, imageUrl]) => (
-            <div 
-              key={key}
-              className="bubble-image"
-              style={{
-                width: '100%',
-                height: '100%',
-                backgroundImage: `url(${imageUrl})`,
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* 上层：文本内容 */}
-        <div 
-          ref={textContentRef}
-          className="text-content"
-          style={{
-            position: 'relative',
-            fontSize: `${textInfo.fontSize || textStyle.fontSize || 24}px`,
-            fontFamily: textInfo.fontFamily || textStyle.fontFamily || 'MiSans',
-            fontWeight: textInfo.fontWeight || textStyle.fontWeight || 'normal',
-            color: textInfo.color || textStyle.color || '#ffffff',
-            textAlign: textInfo.textAlign || textStyle.textAlign || 'center',
-            zIndex: 3,
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px',
-            boxSizing: 'border-box',
-            userSelect: 'none'
-          }}
-        >
-          {item.content}
-        </div>
-      </div>
+    if (!item) return;
+    
+    // 确保元素仍然被选中
+    onSelect?.(item);
+
+    // 获取元素的当前位置和角度
+    const elementId = `element-${item.id}`;
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const rect = element.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    
+    // 计算相对于容器的中心点
+    const centerX = rect.left - containerRect.left + rect.width / 2;
+    const centerY = rect.top - containerRect.top + rect.height / 2;
+    
+    const startAngle = Math.atan2(
+      e.clientY - (containerRect.top + centerY),
+      e.clientX - (containerRect.left + centerX)
     );
+    
+    const startRotation = item.rotation || 0;
+    
+    // 创建一个透明覆盖层，捕获所有鼠标事件
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.zIndex = '9999';
+    overlay.style.cursor = 'crosshair';
+    document.body.appendChild(overlay);
+    
+    // 创建参考线容器
+    const guideLinesContainer = document.createElement('div');
+    guideLinesContainer.style.position = 'fixed';
+    guideLinesContainer.style.top = '0';
+    guideLinesContainer.style.left = '0';
+    guideLinesContainer.style.width = '100vw';
+    guideLinesContainer.style.height = '100vh';
+    guideLinesContainer.style.zIndex = '9998';
+    guideLinesContainer.style.pointerEvents = 'none';
+    document.body.appendChild(guideLinesContainer);
+
+    // 创建参考线
+    const createGuideLine = (angle, isCenter = false) => {
+      const line = document.createElement('div');
+      line.style.position = 'absolute';
+      line.style.top = `${containerRect.top + centerY}px`;
+      line.style.left = `${containerRect.left + centerX}px`;
+      line.style.width = '300px';
+      line.style.height = '2px';
+      line.style.backgroundColor = isCenter ? 'rgba(76, 175, 80, 0.7)' : 'rgba(76, 175, 80, 0.4)';
+      line.style.transform = `rotate(${angle}deg) translateX(-50%)`;
+      line.style.transformOrigin = 'left center';
+      guideLinesContainer.appendChild(line);
+    };
+
+    // 添加所有参考线
+    [0, 45, 90, 135].forEach(angle => createGuideLine(angle, angle === 0));
+    
+    const onMouseMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      moveEvent.stopPropagation();
+      
+      // 重新计算元素中心点（因为元素可能移动）
+      const element = document.getElementById(`element-${item.id}`);
+      if (!element) return;
+      
+      const updatedRect = element.getBoundingClientRect();
+      const updatedCenterX = updatedRect.left - containerRect.left + updatedRect.width / 2;
+      const updatedCenterY = updatedRect.top - containerRect.top + updatedRect.height / 2;
+      
+      // 更新参考线位置
+      const lines = guideLinesContainer.querySelectorAll('div');
+      lines.forEach(line => {
+        line.style.top = `${containerRect.top + updatedCenterY}px`;
+        line.style.left = `${containerRect.left + updatedCenterX}px`;
+      });
+      
+      const currentAngle = Math.atan2(
+        moveEvent.clientY - (containerRect.top + updatedCenterY),
+        moveEvent.clientX - (containerRect.left + updatedCenterX)
+      );
+      
+      // 降低旋转灵敏度
+      let rotation = startRotation + (currentAngle - startAngle) * (180 / Math.PI) * 0.5;
+      
+      // 将旋转角度限制在0-360度范围内
+      const normalizedRotation = ((rotation % 360) + 360) % 360;
+      // 将角度范围调整为-180到180度之间
+      const boundedRotation = normalizedRotation > 180 ? normalizedRotation - 360 : normalizedRotation;
+      
+      // 基准线吸附功能
+      const snapPoints = [0, 45, 90, 135, 180, 225, 270, 315];
+      const snapThreshold = 8; // 增加吸附阈值
+      
+      let snapped = false;
+      let lastSnappedValue = null;
+      for (const snapPoint of snapPoints) {
+        const diff = Math.abs(boundedRotation - snapPoint);
+        if (diff <= snapThreshold) {
+          // 如果是新的吸附点，添加震动反馈
+          if (lastSnappedValue !== snapPoint) {
+            if ('vibrate' in navigator) {
+              navigator.vibrate(20); // 短暂震动提示
+            }
+            lastSnappedValue = snapPoint;
+          }
+          
+          // 应用吸附
+          rotation = snapPoint;
+          snapped = true;
+          
+          // 高亮显示当前吸附的参考线
+          lines.forEach(line => {
+            // 将所有线条恢复为普通状态
+            line.style.backgroundColor = 'rgba(76, 175, 80, 0.4)';
+            line.style.height = '2px';
+            
+            // 高亮匹配的参考线
+            const lineAngle = parseInt(line.style.transform.match(/rotate\((\d+)deg\)/)?.[1] || '0');
+            // 处理等效角度
+            const normalizedLineAngle = lineAngle % 180;
+            const normalizedSnapPoint = snapPoint % 180;
+            
+            if (normalizedLineAngle === normalizedSnapPoint || 
+                (snapPoint % 180 === 0 && lineAngle === 0) || 
+                (snapPoint % 180 === 90 && lineAngle === 90) || 
+                (snapPoint % 180 === 45 && lineAngle === 45) || 
+                (snapPoint % 180 === 135 && lineAngle === 135)) {
+              line.style.backgroundColor = 'rgba(76, 175, 80, 1)';
+              line.style.height = '3px';
+              line.style.boxShadow = '0 0 6px rgba(76, 175, 80, 0.9)';
+              
+              // 使对齐线稍微闪烁以增强视觉反馈
+              setTimeout(() => {
+                if (line && line.parentNode) {
+                  line.style.backgroundColor = 'rgba(255, 238, 88, 1)';
+                  line.style.boxShadow = '0 0 8px rgba(255, 238, 88, 0.9)';
+                  
+                  setTimeout(() => {
+                    if (line && line.parentNode) {
+                      line.style.backgroundColor = 'rgba(76, 175, 80, 1)';
+                      line.style.boxShadow = '0 0 6px rgba(76, 175, 80, 0.9)';
+                    }
+                  }, 150);
+                }
+              }, 0);
+            }
+          });
+          
+          break;
+        }
+      }
+      
+      // 如果没有吸附，恢复所有线条为普通状态，并重置lastSnappedValue
+      if (!snapped) {
+        lastSnappedValue = null;
+        lines.forEach(line => {
+          const isCenter = line.style.transform.includes('rotate(0deg)');
+          line.style.backgroundColor = isCenter ? 'rgba(76, 175, 80, 0.7)' : 'rgba(76, 175, 80, 0.4)';
+          line.style.height = '2px';
+          line.style.boxShadow = 'none';
+        });
+      }
+      
+      // 更新元素
+      const updatedItem = {
+        ...item,
+        rotation: Math.round(boundedRotation) // 四舍五入到整数
+      };
+      
+      onChange?.({
+        ...item,
+        rotation: boundedRotation
+      });
+    };
+    
+    const onMouseUp = (upEvent) => {
+      upEvent.preventDefault();
+      upEvent.stopPropagation();
+      
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      
+      // 移除覆盖层和参考线
+      document.body.removeChild(overlay);
+      document.body.removeChild(guideLinesContainer);
+      
+      // 确保元素仍然被选中
+      setTimeout(() => {
+        if (item) {
+          onSelect?.(item);
+        }
+      }, 50);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   };
 
   return (
-    <div
+    <div 
       ref={elementRef}
-      className={`text-element ${isSelected ? 'selected' : ''}`}
+      id={`element-${item.id}`}
+      className={`text-element ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
       style={{
-        transform: `translate(${boundedX}px, ${boundedY}px) rotate(${item.rotation || 0}deg)`,
-        width: width,
-        height: height,
-        opacity: item.opacity !== undefined ? item.opacity : 1,
+        transform: `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${item.rotation || 0}deg) scale(${item.scale || 1})`,
+        width,
+        height,
+        opacity: item.opacity ?? 1,
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        transformOrigin: 'center',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        zIndex: isSelected ? 9999 : item.zIndex || 0,
         boxShadow: isSelected ? '0 0 0 1px #1890ff' : 'none',
-        zIndex: isSelected ? 10000 : (item.zIndex || 0),
-        userSelect: 'none',
-        lineHeight: '1.2'
+        padding: 0,
+        margin: 0,
+        minWidth: '30px',
+        minHeight: '30px',
+        overflow: 'visible'
       }}
-      onClick={handleClick}
-      onMouseDown={handleDragStart}
+      onMouseDown={(e) => {
+        e.preventDefault(); // 阻止默认行为
+        e.stopPropagation(); // 阻止冒泡
+        handleDragStart(e);
+      }}
+      onClick={(e) => {
+        e.preventDefault(); // 阻止默认行为
+        e.stopPropagation(); // 阻止冒泡
+        handleClick(e);
+      }}
     >
-      {isBubble ? renderBubbleText() : (
-        <div 
-          ref={textContentRef}
-          className="text-content"
-          style={{
-            fontSize: `${textStyle.fontSize || 24}px`,
-            fontFamily: textStyle.fontFamily || 'MiSans',
-            fontWeight: textStyle.fontWeight || 'normal',
-            fontStyle: textStyle.fontStyle || 'normal',
-            color: textStyle.color || '#ffffff',
-            textAlign: textStyle.textAlign || 'center',
-            letterSpacing: textStyle.letterSpacing ? `${textStyle.letterSpacing}px` : 'normal',
-            lineHeight: textStyle.lineHeight || '1.5',
-            textShadow: textStyle.textShadow || '2px 2px 4px rgba(0,0,0,0.5)',
-            WebkitTextStroke: textStyle.WebkitTextStroke || 'none',
-            wordBreak: 'break-word',
-            overflowWrap: 'break-word',
-            maxWidth: '100%',
-            maxHeight: '100%',
-            overflow: 'visible',
-            cursor: isSelected ? 'move' : 'pointer'
-          }}
-        >
+      {/* 渲染实际内容 */}
+      {item.type === TRACK_TYPES.TEXT ? (
+        <div className="text-content" ref={textContentRef} style={textStyle}>
           {item.content}
         </div>
-      )}
-
+      ) : item.type === TRACK_TYPES.IMAGE ? (
+        <img 
+          src={item.src || 'https://picsum.photos/300/200'} 
+          alt={item.content || 'Image'} 
+          style={imageStyle} 
+        />
+      ) : null}
+      
+      {/* 选中时显示的控制点 */}
       {isSelected && (
         <>
-          {/* 调整大小的控制点 */}
-          <div className="resize-handle nw" onMouseDown={(e) => onResizeStart(e, 'nw')}></div>
-          <div className="resize-handle ne" onMouseDown={(e) => onResizeStart(e, 'ne')}></div>
-          <div className="resize-handle se" onMouseDown={(e) => onResizeStart(e, 'se')}></div>
-          <div className="resize-handle sw" onMouseDown={(e) => onResizeStart(e, 'sw')}></div>
-          <div className="resize-handle n" onMouseDown={(e) => onResizeStart(e, 'n')}></div>
-          <div className="resize-handle e" onMouseDown={(e) => onResizeStart(e, 'e')}></div>
-          <div className="resize-handle s" onMouseDown={(e) => onResizeStart(e, 's')}></div>
-          <div className="resize-handle w" onMouseDown={(e) => onResizeStart(e, 'w')}></div>
+          {/* 四角控制点 */}
+          <div className="resize-handle nw" data-handle="nw" onMouseDown={(e) => onResizeStart?.(e, 'nw')}></div>
+          <div className="resize-handle ne" data-handle="ne" onMouseDown={(e) => onResizeStart?.(e, 'ne')}></div>
+          <div className="resize-handle sw" data-handle="sw" onMouseDown={(e) => onResizeStart?.(e, 'sw')}></div>
+          <div className="resize-handle se" data-handle="se" onMouseDown={(e) => onResizeStart?.(e, 'se')}></div>
+          
+          {/* 四边中点控制点 */}
+          <div className="resize-handle n" data-handle="n" onMouseDown={(e) => onResizeStart?.(e, 'n')}></div>
+          <div className="resize-handle e" data-handle="e" onMouseDown={(e) => onResizeStart?.(e, 'e')}></div>
+          <div className="resize-handle s" data-handle="s" onMouseDown={(e) => onResizeStart?.(e, 's')}></div>
+          <div className="resize-handle w" data-handle="w" onMouseDown={(e) => onResizeStart?.(e, 'w')}></div>
+          
+          {/* 中心控制点 */}
+          <div className="resize-handle center" data-handle="center"></div>
+          
+          {/* 旋转控制点 */}
+          <div className="rotate-handle" onMouseDown={(e) => onRotateStart?.(e, item)}></div>
         </>
       )}
     </div>
@@ -524,8 +689,8 @@ const ImageElement = ({
   const y = (item.y / 100) * containerSize.height;
   
   // 确保width和height始终有有效值，防止NaN
-  const itemWidth = typeof item.width === 'number' && !isNaN(item.width) ? item.width : 20;
-  const itemHeight = typeof item.height === 'number' && !isNaN(item.height) ? item.height : 20;
+  const itemWidth = typeof item.width === 'number' && !isNaN(item.width) ? item.width : 10;
+  const itemHeight = typeof item.height === 'number' && !isNaN(item.height) ? item.height : 10;
   
   const width = (itemWidth / 100) * containerSize.width;
   const height = (itemHeight / 100) * containerSize.height;
@@ -641,55 +806,74 @@ const ImageElement = ({
       let newX = initialElementX + deltaXPercent;
       let newY = initialElementY + deltaYPercent;
       
-      // 中心点吸附逻辑
-      const centerX = 50; // 容器中心点X (50%)
-      const centerY = 50; // 容器中心点Y (50%)
-      const snapThreshold = 5; // 吸附阈值 (5%)
-      
-      // 检查是否接近中心X坐标
-      if (Math.abs(newX - centerX) < snapThreshold) {
-        newX = centerX; // 吸附到X中心
-        centerGuideVertical.style.opacity = '1'; // 显示垂直参考线
+      // 获取中心控制点元素
+      const centerHandle = elementRef.current?.querySelector('.resize-handle.center');
+      if (centerHandle) {
+        const handleRect = centerHandle.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
         
-        // 添加吸附动画效果
-        if ('vibrate' in navigator) {
-          navigator.vibrate(10); // 轻微震动提示
+        // 计算中心控制点相对于容器的中心点
+        const handleCenterX = ((handleRect.left + handleRect.width / 2) - containerRect.left) / containerRect.width * 100;
+        const handleCenterY = ((handleRect.top + handleRect.height / 2) - containerRect.top) / containerRect.height * 100;
+        
+        // 中心点吸附逻辑
+        const centerX = 50; // 容器中心点X (50%)
+        const centerY = 50; // 容器中心点Y (50%)
+        const snapThreshold = 5; // 吸附阈值 (5%)
+        
+        // 检查是否接近中心X坐标
+        if (Math.abs(handleCenterX - centerX) < snapThreshold) {
+          // 计算需要调整的偏移量
+          const offsetX = centerX - handleCenterX;
+          newX = initialElementX + deltaXPercent + offsetX;
+          centerGuideVertical.style.opacity = '1'; // 显示垂直参考线
+          centerGuideVertical.style.visibility = 'visible'; // 设置为可见
+          
+          // 添加吸附动画效果
+          if ('vibrate' in navigator) {
+            navigator.vibrate(10); // 轻微震动提示
+          }
+          
+          // 使参考线闪烁以增强视觉反馈
+          centerGuideVertical.animate([
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
+            { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
+          ], {
+            duration: 400,
+            iterations: 1
+          });
+        } else {
+          centerGuideVertical.style.opacity = '0'; // 隐藏垂直参考线
+          centerGuideVertical.style.visibility = 'hidden'; // 设置为不可见
         }
         
-        // 使参考线闪烁以增强视觉反馈
-        centerGuideVertical.animate([
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
-          { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
-        ], {
-          duration: 400,
-          iterations: 1
-        });
-      } else {
-        centerGuideVertical.style.opacity = '0'; // 隐藏垂直参考线
-      }
-      
-      // 检查是否接近中心Y坐标
-      if (Math.abs(newY - centerY) < snapThreshold) {
-        newY = centerY; // 吸附到Y中心
-        centerGuideHorizontal.style.opacity = '1'; // 显示水平参考线
-        
-        // 添加吸附动画效果
-        if ('vibrate' in navigator && centerGuideVertical.style.opacity !== '1') {
-          navigator.vibrate(10); // 轻微震动提示
+        // 检查是否接近中心Y坐标
+        if (Math.abs(handleCenterY - centerY) < snapThreshold) {
+          // 计算需要调整的偏移量
+          const offsetY = centerY - handleCenterY;
+          newY = initialElementY + deltaYPercent + offsetY;
+          centerGuideHorizontal.style.opacity = '1'; // 显示水平参考线
+          centerGuideHorizontal.style.visibility = 'visible'; // 设置为可见
+          
+          // 添加吸附动画效果
+          if ('vibrate' in navigator && centerGuideVertical.style.opacity !== '1') {
+            navigator.vibrate(10); // 轻微震动提示
+          }
+          
+          // 使参考线闪烁以增强视觉反馈
+          centerGuideHorizontal.animate([
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
+            { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
+            { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
+          ], {
+            duration: 400,
+            iterations: 1
+          });
+        } else {
+          centerGuideHorizontal.style.opacity = '0'; // 隐藏水平参考线
+          centerGuideHorizontal.style.visibility = 'hidden'; // 设置为不可见
         }
-        
-        // 使参考线闪烁以增强视觉反馈
-        centerGuideHorizontal.animate([
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' },
-          { opacity: 0.8, boxShadow: '0 0 10px rgba(76, 175, 80, 0.9)' },
-          { opacity: 1, boxShadow: '0 0 5px rgba(76, 175, 80, 0.7)' }
-        ], {
-          duration: 400,
-          iterations: 1
-        });
-      } else {
-        centerGuideHorizontal.style.opacity = '0'; // 隐藏水平参考线
       }
       
       // 边界限制
@@ -730,7 +914,12 @@ const ImageElement = ({
         }
       }
       
-      console.log('图片拖拽结束');
+      // 确保元素仍然被选中
+      setTimeout(() => {
+        if (item) {
+          onSelect?.(item);
+        }
+      }, 50);
     };
     
     document.addEventListener('mousemove', onMouseMove);
@@ -1332,6 +1521,26 @@ const VideoPreview = ({
           newHeight = Math.max(5, startData.startHeight - deltaYPercent);
           overlay.style.cursor = 'nw-resize';
           break;
+        case 'n': // 上边中点
+          newWidth = startData.startWidth;
+          newHeight = Math.max(5, startData.startHeight - deltaYPercent);
+          overlay.style.cursor = 'ns-resize';
+          break;
+        case 'e': // 右边中点
+          newWidth = Math.max(5, startData.startWidth + deltaXPercent);
+          newHeight = startData.startHeight;
+          overlay.style.cursor = 'ew-resize';
+          break;
+        case 's': // 下边中点
+          newWidth = startData.startWidth;
+          newHeight = Math.max(5, startData.startHeight + deltaYPercent);
+          overlay.style.cursor = 'ns-resize';
+          break;
+        case 'w': // 左边中点
+          newWidth = Math.max(5, startData.startWidth - deltaXPercent);
+          newHeight = startData.startHeight;
+          overlay.style.cursor = 'ew-resize';
+          break;
       }
       
       console.log('New dimensions:', { newWidth, newHeight });
@@ -1864,9 +2073,26 @@ const VideoPreview = ({
       ref={containerRef}
       style={{ width, height }}
       onClick={(e) => {
-        console.log('视频预览容器被点击');
-        e.preventDefault(); // 添加阻止默认行为
-        e.stopPropagation(); // 添加阻止事件冒泡
+        // 检查点击是否在元素区域内
+        const clickedElement = e.target.closest('.text-element, .image-element');
+        const clickedControl = e.target.closest('.preview-controls, .resize-handle, .rotate-handle');
+        
+        // 如果点击的是空白区域且不是控制按钮
+        if (!clickedElement && !clickedControl) {
+          // 取消选中状态
+          setSelectedItem(null);
+          onItemSelect?.(null);
+          
+          // 移除所有元素的选中状态
+          document.querySelectorAll('.text-element.selected, .image-element.selected').forEach(el => {
+            el.classList.remove('selected');
+          });
+          
+          // 移除所有轨道项目的选中状态
+          document.querySelectorAll('.track-item.selected').forEach(el => {
+            el.classList.remove('selected');
+          });
+        }
       }}
     >
       <div 

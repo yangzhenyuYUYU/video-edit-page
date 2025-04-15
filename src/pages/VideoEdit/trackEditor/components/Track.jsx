@@ -39,64 +39,47 @@ const Track = ({
     }
   };
 
-  // 当轨道中的项目被选中或轨道本身被选中时，高亮显示轨道
+  // 监听选中事件确保正确处理
   useEffect(() => {
-    if (!trackRef.current) return;
-    
-    const hasSelectedItem = track.items.some(item => item.id === selectedItemId);
-    
-    if (hasSelectedItem || isTrackSelected) {
-      trackRef.current.classList.add('selected');
-      // 添加强制样式
-      trackRef.current.setAttribute('style', 'background-color: rgba(24, 144, 255, 0.15) !important');
-    } else {
-      trackRef.current.classList.remove('selected');
-      trackRef.current.removeAttribute('style');
-    }
-  }, [selectedItemId, track.items, isTrackSelected]);
-  
-  // 处理轨道选择事件
-  useEffect(() => {
-    const handleTrackItemSelect = (event) => {
+    const handleSelectionEvents = (event) => {
       const { detail } = event;
       if (!detail || !trackRef.current) return;
       
-      // 如果选中项目属于此轨道，则选中此轨道
-      if (detail.trackId === track.id) {
-        trackRef.current.classList.add('selected');
-      } else {
-        trackRef.current.classList.remove('selected');
+      // 如果是轨道项目选中事件
+      if (event.type === 'track-item-select') {
+        // 移除所有轨道项目的选中状态
+        const allTrackItems = trackRef.current.querySelectorAll('.track-item');
+        allTrackItems.forEach(item => {
+          item.classList.remove('selected');
+        });
+        
+        // 找到对应的轨道项目并设置选中状态
+        const trackItem = trackRef.current.querySelector(`[data-item-id="${detail.itemId}"]`);
+        if (trackItem && detail.trackId === track.id) {
+          trackItem.classList.add('selected');
+        }
       }
     };
     
-    document.addEventListener('track-item-select', handleTrackItemSelect);
-    document.addEventListener('preview-element-select', handleTrackItemSelect);
+    document.addEventListener('track-item-select', handleSelectionEvents);
+    document.addEventListener('preview-element-select', handleSelectionEvents);
     
     return () => {
-      document.removeEventListener('track-item-select', handleTrackItemSelect);
-      document.removeEventListener('preview-element-select', handleTrackItemSelect);
+      document.removeEventListener('track-item-select', handleSelectionEvents);
+      document.removeEventListener('preview-element-select', handleSelectionEvents);
     };
   }, [track.id]);
 
   return (
     <div
       ref={trackRef}
-      className={`track ${track.type} ${isCollapsed ? 'collapsed' : ''} ${isTrackSelected ? 'selected' : ''}`}
+      className={`track ${track.type} ${isCollapsed ? 'collapsed' : ''}`}
       data-track-id={track.id}
       data-track-type={track.type}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         onTrackClick?.(track.id);
-        
-        // 触发轨道选中事件
-        const trackSelectEvent = new CustomEvent('track-select', {
-          detail: {
-            trackId: track.id,
-            type: track.type
-          }
-        });
-        document.dispatchEvent(trackSelectEvent);
       }}
     >
       <div className="track-header">
@@ -110,6 +93,8 @@ const Track = ({
       <div className="track-content">
         {track.items.map(item => {
           const isBeyondDuration = item.start + item.duration > duration;
+          const isItemSelected = item.id === selectedItemId;
+          
           return (
             <TrackItem
               key={item.id}
@@ -117,7 +102,7 @@ const Track = ({
               track={track}
               zoom={zoom}
               duration={duration}
-              isSelected={item.id === selectedItemId}
+              isSelected={isItemSelected}
               onSelect={onItemSelect}
               onDragStart={onItemDragStart}
               onDrag={onItemDrag}

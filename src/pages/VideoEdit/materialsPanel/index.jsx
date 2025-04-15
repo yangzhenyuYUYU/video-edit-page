@@ -297,28 +297,21 @@ const MaterialsPanel = ({
                   <React.Fragment key={category}>
                     <div className="category-title">{category}</div>
                     <div className="bubbles-grid">
-                      {(categoryBubbles || []).map((bubble) => (
+                      {categoryBubbles.map((bubble) => (
                         <div 
                           key={bubble.id} 
                           className="material-card bubble"
                           onClick={() => onMaterialClick('text', bubble)}
                         >
-                          <div className="bubble-content">
-                            <div className="bubble-images">
-                              {Object.entries(bubble.struct?.backgroundInfo?.images || {}).map(([key, imageUrl]) => (
-                                <div 
-                                  key={key}
-                                  className="bubble-image"
-                                  style={{
-                                    backgroundImage: `url(${imageUrl})`
-                                  }}
-                                />
-                              ))}
-                            </div>
-                            <div className="bubble-text">
-                              {bubble.struct?.textInfo?.content || bubble.content || '气泡文字'}
-                            </div>
-                          </div>
+                          <div 
+                            className="bubble-content"
+                            style={{
+                              backgroundImage: `url(${bubble.url || bubble.imageUrl})`,
+                              backgroundSize: 'contain',
+                              backgroundPosition: 'center',
+                              backgroundRepeat: 'no-repeat'
+                            }}
+                          />
                         </div>
                       ))}
                     </div>
@@ -327,28 +320,21 @@ const MaterialsPanel = ({
               ) : (
                 // 显示选中分类的气泡
                 <div className="bubbles-grid">
-                  {(bubblesByCategory && bubblesByCategory[activeCategory] || []).map((bubble) => (
+                  {bubblesByCategory && bubblesByCategory[activeCategory]?.map((bubble) => (
                     <div 
                       key={bubble.id} 
                       className="material-card bubble"
                       onClick={() => onMaterialClick('text', bubble)}
                     >
-                      <div className="bubble-content">
-                        <div className="bubble-images">
-                          {Object.entries(bubble.struct?.backgroundInfo?.images || {}).map(([key, imageUrl]) => (
-                            <div 
-                              key={key}
-                              className="bubble-image"
-                              style={{
-                                backgroundImage: `url(${imageUrl})`
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <div className="bubble-text">
-                          {bubble.struct?.textInfo?.content || bubble.content || '气泡文字'}
-                        </div>
-                      </div>
+                      <div 
+                        className="bubble-content"
+                        style={{
+                          backgroundImage: `url(${bubble.url || bubble.imageUrl})`,
+                          backgroundSize: 'contain',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'no-repeat'
+                        }}
+                      />
                     </div>
                   ))}
                 </div>
@@ -376,7 +362,7 @@ const MaterialsPanel = ({
                   <img 
                     src={element.cover || element.url} 
                     alt={element.name} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '50%', objectFit: 'cover' }}
                   />
                 </div>
               </div>

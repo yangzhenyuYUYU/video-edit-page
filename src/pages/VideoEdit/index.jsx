@@ -147,373 +147,108 @@ const VideoEdit = () => {
     return track ? track.type : null;
   };
 
-  // 处理素材点击
-  const handleMaterialClick = (type, content) => {
-    if (!type || !content) {
-      message.error('素材类型或内容不能为空');
+  // 添加素材到时间轴
+  const addMaterialToTimeline = (type, content) => {
+    console.log('添加素材到时间轴:', type, content);
+    const trackType = type === 'video' ? TRACK_TYPES.VIDEO : 
+                     type === 'image' ? TRACK_TYPES.IMAGE : 
+                     type === 'audio' ? TRACK_TYPES.AUDIO : 
+                     type === 'text' ? TRACK_TYPES.TEXT : 
+                     type === 'voice' ? TRACK_TYPES.VOICE : 
+                     type === 'background' ? TRACK_TYPES.BACKGROUND : null;
+    
+    if (!trackType) {
+      message.error('不支持的素材类型');
       return;
     }
     
-    if (type === 'video') {
-      // 获取对应类型
-      const trackType = TRACK_TYPES.VIDEO;
-      
-      // 确保轨道区域是展开的
-      if (isTimelineCollapsed) {
-        handleToggleTracks(false); // 使用强制展开
-      }
-      
-      // 创建新的素材项
-      const newItem = {
-        id: `${type}-${Date.now()}`,
-        start: 0,
-        duration: 10,
-        content: typeof content === 'string' ? content : content.name || '未命名内容',
-      };
-      
-      // 根据类型设置src
-      if (typeof content === 'object' && content.url) {
-        newItem.src = content.url;
-        newItem.name = content.name;
-        newItem.duration = content.duration || 10;
-        newItem.templateId = content.id;
-        newItem.cover = content.cover;
-      } else {
-        newItem.src = 'http://kl-digital.oss-cn-shanghai.aliyuncs.com/synthesis/42/P13525239778T1741857143139RPYUV.mp4';
-        newItem.cover = 'https://picsum.photos/300/200?random=' + Date.now();
-      }
-      // 获取当前视频轨道
-      const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
-
-      // 在现有轨道中添加新片段
-      if (videoTrack) {
-        console.log('在现有视频轨道中添加新视频');
+      // 检查是否是视频轨道
+      if (trackType === TRACK_TYPES.VIDEO) {
+        console.log('处理视频轨道添加...');
         
-        // 更新轨道数据 - 向轨道中添加新视频片段
-        const updatedTrack = {
-          ...videoTrack,
-          items: [newItem] // 替换现有视频
+        // 查找现有视频轨道
+        const existingVideoTracks = tracks.filter(track => track.type === TRACK_TYPES.VIDEO);
+        console.log('现有视频轨道数量:', existingVideoTracks.length);
+        
+        // 创建新的视频项目
+        const newItem = {
+          id: `video-${Date.now()}`,
+          start: 0,
+          duration: content.duration || 10,
+          src: content.url,
+          cover: content.cover || content.url,
+          content: content.name || '未命名视频'
         };
         
-        const newTracks = tracks.map(track => 
-          track.id === videoTrack.id ? updatedTrack : track
-        );
+        let newTracks;
+        let selectedTrackId;
         
-        // 更新状态
-        setTracks(newTracks);
-        handleTrackChange(newTracks);
-        
-        // 选中新添加的视频
-        setSelectedVideoId(newItem.id);
-        setSelectedTrackItem({
-          trackId: videoTrack.id,
-          type: trackType,
+        if (existingVideoTracks.length > 0) {
+          console.log('复用现有视频轨道');
+          // 使用第一个视频轨道
+          const videoTrack = existingVideoTracks[0];
+          
+          // 更新轨道数据 - 替换视频
+          const updatedTrack = {
+            ...videoTrack,
+            items: [newItem] // 确保只有一个视频
+          };
+          
+          // 过滤掉其他视频轨道
+          newTracks = tracks
+            .filter(track => track.type !== TRACK_TYPES.VIDEO)
+            .concat([updatedTrack]);
+            
+          selectedTrackId = videoTrack.id;
+        } else {
+          console.log('创建新视频轨道');
+          // 创建新的视频轨道
+          const newVideoTrack = {
+            id: `video-track-${Date.now()}`,
+            type: trackType,
+            name: '视频轨道',
+            items: [newItem]
+          };
+          
+          newTracks = [newVideoTrack, ...tracks];
+          selectedTrackId = newVideoTrack.id;
+        }
+      
+      // 只更新一次状态
+      setTracks(newTracks);
+      handleTrackChange(newTracks);
+      
+      // 选中新添加的视频
+      setSelectedVideoId(newItem.id);
+      setSelectedTrackItem({
+        trackId: selectedTrackId,
+        type: trackType,
+        itemId: newItem.id,
+        isTrack: false
+      });
+      
+      // 触发轨道项目选中事件
+      const trackSelectEvent = new CustomEvent('track-item-select', {
+        detail: {
           itemId: newItem.id,
-          isTrack: false
-        });
-      } else {
-        // 如果没有视频轨道，创建新的
-        console.log('创建新的视频轨道并添加视频');
-        
-        const newVideoTrack = {
-          id: `video-track-${Date.now()}`,
+          trackId: selectedTrackId,
           type: trackType,
-          name: '视频轨道',
-          items: [newItem]
-        };
-        
-        const newTracks = [newVideoTrack, ...tracks.filter(track => track.type !== trackType)];
-        
-        // 更新状态
-        setTracks(newTracks);
-        handleTrackChange(newTracks);
-        
-        // 选中新添加的视频
-        setSelectedVideoId(newItem.id);
-        setSelectedTrackItem({
-          trackId: newVideoTrack.id,
-          type: trackType,
-          itemId: newItem.id,
-          isTrack: false
-        });
-      }
+          item: newItem,
+          expandTimeline: true,
+          forceSelectTrack: false  // 不选中轨道，只选中轨道项目
+        }
+      });
+      document.dispatchEvent(trackSelectEvent);
       
       // 重置播放状态
       setCurrentTime(0);
       setIsPlaying(false);
       
-      message.success(`成功添加${type === 'video' ? '视频' : '数字人'}素材`);
-      return;
-    } else if (type === 'text') {
-      // 处理文本类型
-      const trackType = TRACK_TYPES.TEXT;
-      
-      // 确保轨道区域是展开的
-      if (isTimelineCollapsed) {
-        handleToggleTracks(false); // 使用强制展开
-      }
-      
-      // 创建新的文本项
-      const newItem = {
-        id: `${type}-${Date.now()}`,
-        start: 0,
-        duration: 10,
-        content: (content.struct && content.struct.textInfo) ? content.struct.textInfo.content : (content.content || '气泡文字'),
-        url: content.url,
-        // 根据内容格式设置文本样式
-        textStyle: content.textStyle || {
-          color: "#FFFFFF",
-          fontSize: 24,
-          fontFamily: "MiSans",
-          fontWeight: "normal",
-          fontStyle: "normal",
-          textAlign: "center",
-          letterSpacing: 0,
-          lineHeight: 1.5,
-          WebkitTextStroke: "none",
-          textShadow: "2px 2px 4px rgba(0,0,0,0.5)"
-        }
-      };
-
-      // 如果是气泡对象，保存气泡的信息
-      if (typeof content === 'object' && (content.type === 'bubble' || content.struct)) {
-        newItem.bubbleStyle = {
-          imageUrl: content.imageUrl || (content.url || ''),
-          textColor: content.textColor || '#FFFFFF',
-          textAlign: content.textAlign || 'center',
-          paddingVertical: content.paddingVertical || 10,
-          paddingHorizontal: content.paddingHorizontal || 10,
-          struct: content.struct || null,
-          url: content.url || '',
-          width: content.width || 300,
-          height: content.height || 200
-        };
-        
-        // 确保结构化数据完整
-        if (content.struct) {
-          // 保留原始的背景信息和文本信息
-          const backgroundInfo = content.struct.backgroundInfo || {};
-          
-          // 确保 backgroundInfo.images 存在
-          if (backgroundInfo.images && Object.keys(backgroundInfo.images).length > 0) {
-            newItem.bubbleStyle.struct = {
-              ...content.struct,
-              backgroundInfo: {
-                ...backgroundInfo,
-                backgroundColor: backgroundInfo.backgroundColor || '#808080'
-              }
-            };
-          }
-        }
-      }
-
-      // 为每个文本元素创建独立的轨道，而不是复用现有轨道
-      const newTextTrack = {
-        id: `text-${Date.now()}`,
-        type: TRACK_TYPES.TEXT,
-        name: '文本轨道',
-        items: [newItem]
-      };
-
-      // 更新轨道列表，添加新创建的文本轨道
-      const newTracks = [newTextTrack, ...tracks];
-      setTracks(newTracks);
-      handleTrackChange(newTracks);
-
-      // 选中新添加的文本
-      setSelectedTrackItem({
-        trackId: newTextTrack.id,
-        type: trackType,
-        itemId: newItem.id,
-        isTrack: false
-      });
-
-      // 触发轨道选中事件
-      const trackSelectEvent = new CustomEvent('track-item-select', {
-        detail: {
-          itemId: newItem.id,
-          trackId: newTextTrack.id,
-          type: trackType,
-          item: newItem,
-          expandTimeline: true,
-          forceSelectTrack: true
-        }
-      });
-      document.dispatchEvent(trackSelectEvent);
-
-      // 触发预览区域选中事件
-      const previewSelectEvent = new CustomEvent('preview-element-select', {
-        detail: {
-          itemId: newItem.id,
-          trackId: newTextTrack.id,
-          type: trackType,
-          item: newItem,
-          expandTimeline: true,
-          forceSelectTrack: true
-        }
-      });
-      document.dispatchEvent(previewSelectEvent);
-      
-      // 更新编辑状态
-      updateElementEditingState({
-        ...newItem,
-        type: trackType,
-        trackId: newTextTrack.id
-      });
-      
-      // 延迟一下确保DOM已更新
-      setTimeout(() => {
-        // 选中相应的元素
-        const element = document.getElementById(`element-${newItem.id}`);
-        if (element) {
-          element.classList.add('selected');
-        }
-        
-        // 选中相应的轨道项目
-        const trackElement = document.querySelector(`[data-track-item-id="${newItem.id}"]`);
-        if (trackElement) {
-          trackElement.classList.add('selected');
-        }
-        
-        // 选中整个轨道
-        const trackRow = document.querySelector(`[data-track-id="${newTextTrack.id}"]`);
-        if (trackRow) {
-          // 移除其他轨道的选中状态
-          document.querySelectorAll('.track.selected').forEach(el => {
-            if (el.getAttribute('data-track-id') !== newTextTrack.id) {
-              el.classList.remove('selected');
-            }
-          });
-          
-          // 添加选中状态
-          trackRow.classList.add('selected');
-          
-          // 自动滚动到该轨道
-          const trackContainer = document.querySelector('.timeline');
-          if (trackContainer) {
-            trackContainer.scrollTop = trackRow.offsetTop - trackContainer.offsetTop;
-          }
-        }
-      }, 100);
-
-      message.success('成功添加气泡文本');
+      message.success('成功添加视频素材');
       return;
     }
-
-    // 如果是背景类型，特殊处理
-    if (type === 'background') {
-      console.log('添加背景素材:', content);
-      
-      // 获取对应类型
-      const trackType = TRACK_TYPES.BACKGROUND;
-      
-      // 如果轨道是收起状态，展开它
-      if (isTimelineCollapsed) {
-        handleToggleTracks(false); // 使用强制展开
-      }
-
-      // 获取视频轨道和视频时长
-      const videoTrack = tracks.find(track => track.type === TRACK_TYPES.VIDEO);
-      const videoItem = videoTrack?.items[0];
-      const videoDuration = videoItem?.duration || 10;
-      
-      // 创建新的背景素材项
-      const newItem = {
-        id: `background-${Date.now()}`,
-        start: 0,
-        duration: videoDuration, // 使用视频时长
-        content: typeof content === 'string' ? content : content.name || '背景',
-        isBackground: true, // 标记为背景
-        width: content.width || 1080,
-        height: content.height || 1920,
-        zIndex: -1 // 确保背景在最底层
-      };
-      
-      // 根据类型设置src
-      if (typeof content === 'object' && content.url) {
-        newItem.src = content.url;
-        newItem.cover = content.cover || content.url;
-      }
-      
-      // 检查是否已有背景轨道
-      const backgroundTrack = tracks.find(track => track.type === trackType);
-      let newTracks = [...tracks];
-      
-      if (backgroundTrack) {
-        // 更新现有背景轨道 - 替换为新的背景（一次只能有一个背景）
-        const updatedTrack = {
-          ...backgroundTrack,
-          items: [newItem] // 替换现有背景
-        };
-        
-        newTracks = tracks.map(track => 
-          track.id === backgroundTrack.id ? updatedTrack : track
-        );
-      } else {
-        // 创建新的背景轨道
-        const newBackgroundTrack = {
-          id: `background-track-${Date.now()}`,
-          type: trackType,
-          name: '背景轨道',
-          items: [newItem],
-          isBackground: true
-        };
-        
-        // 将背景轨道添加到最底部
-        newTracks.push(newBackgroundTrack);
-      }
-      
-      // 更新状态
-      setTracks(newTracks);
-      handleTrackChange(newTracks);
-      
-      // 选中添加的背景
-      setSelectedTrackItem({
-        trackId: backgroundTrack ? backgroundTrack.id : `background-track-${Date.now()}`,
-        type: trackType,
-        itemId: newItem.id,
-        isTrack: false
-      });
-
-      // 触发轨道选中事件
-      const trackSelectEvent = new CustomEvent('track-item-select', {
-        detail: {
-          itemId: newItem.id,
-          trackId: backgroundTrack ? backgroundTrack.id : `background-track-${Date.now()}`,
-          type: trackType,
-          item: newItem,
-          expandTimeline: true,
-          forceSelectTrack: true
-        }
-      });
-      document.dispatchEvent(trackSelectEvent);
-      
-      message.success('成功添加背景素材');
-      return;
-    }
-
-    // 对于其他类型的素材，检查是否已选择区域
-    // if (!selectedVideoId) {
-    //   message.warning('请先选择一个区域片段');
-    //   return;
-    // }
-
-    // 如果轨道是收起状态，展开它
-    if (isTimelineCollapsed) {
-      handleToggleTracks(false); // 使用强制展开
-    }
-
-    // 获取对应类型
-    const trackType = type === 'image' ? TRACK_TYPES.IMAGE :
-                    type === 'audio' ? TRACK_TYPES.AUDIO :
-                    type === 'text' ? TRACK_TYPES.TEXT : null;
     
-    if (!trackType) {
-      message.warning('不支持的素材类型');
-      return;
-    }
-
-    // 创建新的素材项
+    // 处理其他类型素材
     const newItem = {
       id: `${type}-${Date.now()}`,
       start: 0,
@@ -536,7 +271,18 @@ const VideoEdit = () => {
           width: content.width,
           height: content.height
         };
-        newItem.content = content.struct.textInfo.content;
+        // 安全地获取文本内容
+        newItem.content = content.struct?.textInfo?.content || content.content || '添加文本';
+      } else {
+        // 普通文本
+        newItem.content = content.content || '添加文本';
+        newItem.style = {
+          color: '#333333',
+          fontSize: 24,
+          fontFamily: 'Arial',
+          fontWeight: 'normal',
+          textAlign: 'center'
+        };
       }
     } else if (type === 'image') {
       if (typeof content === 'object') {
@@ -569,33 +315,26 @@ const VideoEdit = () => {
     };
 
     // 更新轨道列表，保留所有现有轨道
-    setTracks(prevTracks => {
-      // 保留所有现有轨道，新轨道添加到顶部
-      const updatedTracks = [newTrack, ...prevTracks];
-      handleTrackChange(updatedTracks);
-      
-      // 构建新元素对象
-      const newElementItem = {
-        ...newItem,
-        trackId: newTrack.id,
-        type: trackType,
-        x: 50,
-        y: 50,
-        width: trackType === TRACK_TYPES.TEXT ? 30 : 20,
-        height: 'auto',
-        rotation: 0,
-        scale: 1,
-        opacity: 1,
-        isNew: true
-      };
-      
-      // 直接调用 handleItemSelect
-      handleItemSelect(newElementItem);
-      
-      return updatedTracks;
-    });
+    const updatedTracks = [newTrack, ...tracks];
+    setTracks(updatedTracks);
+    handleTrackChange(updatedTracks);
     
-    // 选中添加的项目
+    // 构建新元素对象
+    const newElementItem = {
+      ...newItem,
+      trackId: newTrack.id,
+      type: trackType,
+      x: 50,
+      y: 50,
+      width: trackType === TRACK_TYPES.TEXT ? 30 : 20,
+      height: 'auto',
+      rotation: 0,
+      scale: 1,
+      opacity: 1,
+      isNew: true
+    };
+    
+    // 选中新添加的项目
     setSelectedTrackItem({
       trackId: newTrack.id,
       type: trackType,
@@ -611,7 +350,7 @@ const VideoEdit = () => {
         type: trackType,
         item: newItem,
         expandTimeline: true,
-        forceSelectTrack: true
+        forceSelectTrack: false // 不选中轨道，只选中轨道项目
       }
     });
     document.dispatchEvent(trackSelectEvent);
@@ -624,7 +363,7 @@ const VideoEdit = () => {
         type: trackType,
         item: newItem,
         expandTimeline: true,
-        forceSelectTrack: true
+        forceSelectTrack: false // 不选中轨道，只选中轨道项目
       }
     });
     document.dispatchEvent(previewSelectEvent);
@@ -635,34 +374,23 @@ const VideoEdit = () => {
       type: trackType
     });
     
-    // 延迟一下确保 DOM 已更新
+    // 延迟一下确保 DOM 已更新，然后添加高亮效果
     setTimeout(() => {
-      // 选中相应的轨道元素
+      // 选中相应的轨道项目
+      const trackElement = document.querySelector(`[data-item-id="${newItem.id}"]`);
+      if (trackElement) {
+        trackElement.classList.add('selected');
+      }
+      
+      // 选中相应的元素
       const element = document.getElementById(`element-${newItem.id}`);
       if (element) {
         element.classList.add('selected');
       }
       
-      // 选中相应的轨道项目
-      const trackElement = document.querySelector(`[data-track-item-id="${newItem.id}"]`);
-      if (trackElement) {
-        trackElement.classList.add('selected');
-      }
-      
-      // 选中整个轨道
+      // 自动滚动到该轨道
       const trackRow = document.querySelector(`[data-track-id="${newTrack.id}"]`);
       if (trackRow) {
-        // 移除其他轨道的选中状态
-        document.querySelectorAll('.track.selected').forEach(el => {
-          if (el.getAttribute('data-track-id') !== newTrack.id) {
-            el.classList.remove('selected');
-          }
-        });
-        
-        // 添加选中状态
-        trackRow.classList.add('selected');
-        
-        // 自动滚动到该轨道
         const trackContainer = document.querySelector('.timeline');
         if (trackContainer) {
           trackContainer.scrollTop = trackRow.offsetTop - trackContainer.offsetTop;
@@ -748,7 +476,14 @@ const VideoEdit = () => {
             name: '视频轨道',
             items: []
           };
-          setTracks(prev => [emptyVideoTrack, ...prev]);
+          // 确保不会创建重复的轨道
+          setTracks(prev => {
+            const existingVideoTracks = prev.filter(track => track.type === TRACK_TYPES.VIDEO);
+            if (existingVideoTracks.length === 0) {
+              return [emptyVideoTrack, ...prev];
+            }
+            return prev;
+          });
         }
       }
     } else {
@@ -1295,7 +1030,7 @@ const VideoEdit = () => {
       <div className="video-edit-container">
         {/* 使用MaterialsPanel组件替换原来的侧边栏 */}
         <MaterialsPanel 
-          onMaterialClick={handleMaterialClick}
+          onMaterialClick={addMaterialToTimeline}
           onBack={handleBack}
           playingAudioId={playingAudioId}
           onAudioPlay={handleAudioPlay}
