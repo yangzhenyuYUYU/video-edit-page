@@ -362,7 +362,7 @@ const MaterialsPanel = ({
                   <img 
                     src={element.cover || element.url} 
                     alt={element.name} 
-                    style={{ width: '100%', height: '50%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </div>
               </div>

@@ -1231,7 +1231,7 @@ const VideoPreview = ({
     return cleanup;
   }, [videoSrc, isPlaying, currentTime, onSeek, onPause]);
 
-  // 播放状态控制
+  // 监听播放状态控制
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -1254,6 +1254,56 @@ const VideoPreview = ({
       video.pause();
     }
   }, [isPlaying, onPause]);
+
+  // 添加监听全局暂停事件
+  useEffect(() => {
+    const handlePauseRequested = () => {
+      console.log('VideoPreview 收到暂停请求');
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        // 通知父组件更新状态
+        onPause?.();
+      }
+    };
+
+    // 添加事件监听
+    document.addEventListener('video-pause-requested', handlePauseRequested);
+
+    // 清理函数
+    return () => {
+      document.removeEventListener('video-pause-requested', handlePauseRequested);
+    };
+  }, [onPause]);
+
+  // 添加监听全局播放事件
+  useEffect(() => {
+    const handlePlayRequested = () => {
+      console.log('VideoPreview 收到播放请求');
+      const video = videoRef.current;
+      if (video) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('视频开始播放成功');
+            })
+            .catch(error => {
+              console.warn('播放失败:', error);
+              onPause?.();
+            });
+        }
+      }
+    };
+
+    // 添加事件监听
+    document.addEventListener('video-play-requested', handlePlayRequested);
+
+    // 清理函数
+    return () => {
+      document.removeEventListener('video-play-requested', handlePlayRequested);
+    };
+  }, [onPause]);
 
   // 时间同步效果
   useEffect(() => {

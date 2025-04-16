@@ -207,6 +207,7 @@ const TimelineCursor = ({
         }}
         onMouseDown={handleCursorMouseDown}
         ref={cursorRef}
+        title={`当前时间: ${currentTime.toFixed(1)}秒`}  // 添加提示以增强用户体验
       />
       <div
         className={`timeline-cursor-line ${isPlaying ? 'playing' : ''}`}

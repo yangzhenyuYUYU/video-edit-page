@@ -525,9 +525,60 @@
         align-items: center;
         justify-content: center;
         font-size: 11px;
+        z-index: 5;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background-color: #e8e8e8;
+        }
+        
+        .track-info {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
         
         .track-icon {
-          transition: color 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          border-radius: 4px;
+          background-color: rgba(255, 255, 255, 0.85);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          transition: all 0.2s ease;
+        }
+      }
+      
+      // 选中轨道样式
+      &.selected-track {
+        background-color: rgba(24, 144, 255, 0.08);
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.15);
+        position: relative;
+        z-index: 2;
+        
+        &::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          width: 3px;
+          background-color: #1890ff;
+        }
+        
+        .track-header {
+          background-color: rgba(24, 144, 255, 0.15);
+          border-right: 2px solid #1890ff;
+
+          .track-icon {
+            transform: scale(1.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+          }
         }
       }
       
@@ -559,8 +610,9 @@
           margin: 0 2px;
 
           &:hover {
-            border-color: rgba(24, 144, 255, 0.5);
-            box-shadow: 0 2px 6px rgba(24, 144, 255, 0.15);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+            z-index: 10;
           }
 
           .media-container {
@@ -585,8 +637,36 @@
 
           &.selected {
             border: 2px solid #1890ff;
-            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-            z-index: 10;
+            box-shadow: 0 0 0 1px rgba(24, 144, 255, 0.2), 0 2px 8px rgba(24, 144, 255, 0.3);
+            z-index: 15;
+            
+            // 添加4个角标记表示选中
+            &::before, &::after {
+              content: "";
+              position: absolute;
+              width: 8px;
+              height: 8px;
+              background-color: #1890ff;
+              border-radius: 50%;
+              z-index: 20;
+            }
+            
+            &::before {
+              top: -4px;
+              left: -4px;
+            }
+            
+            &::after {
+              bottom: -4px;
+              right: -4px;
+            }
+            
+            &::before {
+              box-shadow: 
+                8px 0 0 -3px #1890ff,
+                0 8px 0 -3px #1890ff,
+                8px 8px 0 -3px #1890ff;
+            }
           }
 
           &.collision-warning {

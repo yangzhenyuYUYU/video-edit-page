@@ -342,24 +342,29 @@ const TrackItem = ({
     }
   };
 
-  // 处理点击选择
+  // 处理选择
   const handleSelect = (e) => {
-    e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation(); // 阻止事件冒泡，防止触发轨道的点击事件
     
-    // 如果当前项目已经被选中，则不执行任何操作
-    if (isSelected) {
-      return;
+    // 只有当不在拖拽/调整大小时才触发选择
+    if (!dragRef.current.isDragging && !resizeRef.current.isResizing) {
+      // 移除所有轨道的选中状态
+      document.querySelectorAll('.track').forEach(trackEl => {
+        trackEl.classList.remove('selected-track');
+      });
+      
+      // 移除所有轨道项目的选中状态
+      document.querySelectorAll('.track-item').forEach(itemEl => {
+        itemEl.classList.remove('selected');
+      });
+      
+      // 添加选中状态
+      itemRef.current.classList.add('selected');
+      
+      // 通知父组件
+      onSelect?.(item.id);
     }
-    
-    console.log('轨道项目被点击选择:', item);
-    
-    // 传递完整的item对象，包含trackId和type信息
-    const enhancedItem = {
-      ...item,
-      trackId: track.id,
-      type: track.type
-    };
-    onSelect?.(enhancedItem);
   };
 
   return (

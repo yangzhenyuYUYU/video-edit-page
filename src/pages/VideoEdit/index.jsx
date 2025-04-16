@@ -802,10 +802,26 @@ const VideoEdit = () => {
   const handlePause = useCallback(() => {
     console.log('暂停播放');
     setIsPlaying(false);
-    // 确保视频预览组件暂停
-    const videoPreview = document.querySelector('.preview-video');
-    if (videoPreview) {
-      videoPreview.pause();
+    // 修复：使用更准确的选择器找到视频元素，并确保它真的被暂停
+    try {
+      // 尝试多种可能的选择器以确保找到视频元素
+      const videoElement = 
+        document.querySelector('.video-preview-container .preview-video') || 
+        document.querySelector('.preview-video') ||
+        document.querySelector('video');
+      
+      if (videoElement) {
+        console.log('找到视频元素，暂停播放');
+        // 确保视频元素暂停
+        videoElement.pause();
+      } else {
+        console.warn('未找到视频元素，无法直接暂停视频');
+      }
+      
+      // 触发一个自定义事件，通知所有相关组件暂停播放
+      document.dispatchEvent(new CustomEvent('video-pause-requested'));
+    } catch (error) {
+      console.error('暂停视频时发生错误:', error);
     }
   }, []);
 

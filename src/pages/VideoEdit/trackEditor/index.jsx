@@ -115,6 +115,8 @@ const TrackEditor = ({
       console.log('轨道编辑器请求暂停');
       // 先设置状态，再通知父组件
       setIsPlaying(false);
+      // 触发全局暂停事件，确保视频和其他组件都响应
+      document.dispatchEvent(new CustomEvent('video-pause-requested'));
       onPause?.();
     } else {
       console.log('轨道编辑器请求播放');
@@ -129,17 +131,10 @@ const TrackEditor = ({
       
       // 先设置状态，再通知父组件
       setIsPlaying(true);
-      onPlay?.();
       
-      // 确保视频预览组件开始播放
-      const videoPreview = document.querySelector('.preview-video');
-      if (videoPreview) {
-        videoPreview.play().catch(error => {
-          console.warn('视频播放失败:', error);
-          setIsPlaying(false);
-          onPause?.();
-        });
-      }
+      // 触发全局播放事件
+      document.dispatchEvent(new CustomEvent('video-play-requested'));
+      onPlay?.();
     }
   }, [isPlaying, currentTime, getActualVideoDuration, onCursorChange, onPlay, onPause]);
 
@@ -234,6 +229,24 @@ const TrackEditor = ({
       setIsPlaying(isPlaying);
     }
   }, [isPlaying]);
+
+  // 监听全局暂停请求
+  useEffect(() => {
+    const handlePauseRequested = () => {
+      console.log('轨道编辑器收到暂停请求');
+      // 停止播放
+      stopPlayback();
+      onPause?.();
+    };
+
+    // 添加事件监听
+    document.addEventListener('video-pause-requested', handlePauseRequested);
+
+    // 清理函数
+    return () => {
+      document.removeEventListener('video-pause-requested', handlePauseRequested);
+    };
+  }, [stopPlayback, onPause]);
 
   // 监听当前时间变化
   useEffect(() => {
@@ -500,11 +513,36 @@ const TrackEditor = ({
 
   // 处理轨道点击
   const handleTrackClick = useCallback((trackId) => {
+    console.log('轨道被点击:', trackId);
+    
+    // 清除之前选中的项目
     setSelectedItem(null);
+    
+    // 设置当前选中的轨道ID
     setSelectedTrackId(trackId);
+    
+    // 查找轨道对象
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) {
+      console.warn('未找到被点击的轨道:', trackId);
+      return;
+    }
+    
+    // 手动管理轨道的选中状态
+    const trackElements = document.querySelectorAll('.track');
+    trackElements.forEach(el => {
+      const elTrackId = el.getAttribute('data-track-id');
+      if (elTrackId === trackId) {
+        el.classList.add('selected-track');
+      } else {
+        el.classList.remove('selected-track');
+      }
+    });
+    
+    // 通知父组件轨道被选中
     onItemSelect?.({
       trackId,
-      type: tracks.find(t => t.id === trackId)?.type,
+      type: track.type,
       isTrack: true
     });
   }, [tracks, onItemSelect]);
@@ -870,10 +908,10 @@ const TrackEditor = ({
         onItemDragEnd={handleItemDragEnd}
         onItemResize={handleItemResize}
         onTrackClick={handleTrackClick}
-        isTrackSelected={false}
+        isTrackSelected={selectedTrackId === track.id}
       />
     ));
-  }, [tracks, zoom, isCollapsed, selectedItem, selectedTrackId, getDuration]);
+  }, [tracks, zoom, isCollapsed, selectedItem, selectedTrackId, getDuration, handleItemSelect, handleItemDragStart, handleItemDrag, handleItemDragEnd, handleItemResize, handleTrackClick]);
 
   return (
     <div className={`track-editor ${isCollapsed ? 'collapsed' : ''}`}>
